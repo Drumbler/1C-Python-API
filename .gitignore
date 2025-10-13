@@ -1,0 +1,16 @@
+*.log
+*.tmp
+*.pyc
+*.coverage
+/Env/
+/tests/
+pytest.ini
+
+
+No_such_table_in_db.xlsx
+Not_added_to_DB.xlsx
+Not_updated_in_DB.xlsx
+py.py
+.qodo
+app/modules/ideas.md
+app/modules/sql_query.md
