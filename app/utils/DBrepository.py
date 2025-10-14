@@ -15,7 +15,6 @@ class DBRepository:
 
     # name pass and user for local usage only!
     def __init__(self):
-        load_dotenv()
         self.conn_data = {'dbname': os.environ.get('DB_NAME'),
                           'user': os.environ.get('DB_USER'),
                           'password': os.environ.get('DB_PASS'),
