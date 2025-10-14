@@ -16,11 +16,13 @@ class DBRepository:
     # name pass and user for local usage only!
     def __init__(self):
         load_dotenv()
-        self.conn_data = {'dbname': os.getenv('DB_Name'),
-                          'user': os.getenv('calc1_user'),
-                          'password': os.getenv('DB_Pass'),
-                          'host': os.getenv('DB_IP'),
-                          'port': os.getenv('DB_Port')}
+        self.conn_data = {'dbname': os.environ.get('DB_NAME'),
+                          'user': os.environ.get('DB_USER'),
+                          'password': os.environ.get('DB_PASS'),
+                          'host': os.environ.get('DB_HOST', 'localhost'),
+                          'port': os.environ.get('DB_PORT', '5432'),
+                          "client_encoding": os.environ.get('DB_CLIENT_ENCODING', 'utf8')
+                          }
 
     def get_materials_for_products(self, series: str) -> Dict[int, List[str]]:
         '''
