@@ -2,6 +2,7 @@
 *.tmp
 *.pyc
 *.coverage
+.env
 /Env/
 /tests/
 pytest.ini

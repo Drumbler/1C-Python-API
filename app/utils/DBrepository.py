@@ -4,6 +4,8 @@ from logging import getLogger
 from fastapi import HTTPException, UploadFile
 import pandas as pd
 from app.utils.handlers.module_loader import load_all_modules
+from dotenv import load_dotenv
+import os
 
 
 logger = getLogger(__name__)
@@ -13,11 +15,12 @@ class DBRepository:
 
     # name pass and user for local usage only!
     def __init__(self):
-        self.conn_data = {'dbname': 'calculator_data',
-                          'user': 'calc1_user',
-                          'password': 'tehnopark-it',
-                          'host': '192.168.24.180',
-                          'port': '5432'}
+        load_dotenv()
+        self.conn_data = {'dbname': os.getenv('DB_Name'),
+                          'user': os.getenv('calc1_user'),
+                          'password': os.getenv('DB_Pass'),
+                          'host': os.getenv('DB_IP'),
+                          'port': os.getenv('DB_Port')}
 
     def get_materials_for_products(self, series: str) -> Dict[int, List[str]]:
         '''
