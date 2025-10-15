@@ -44,9 +44,8 @@ def parse_parameters(parameters: str) -> Dict[str, str]:
 
 def cost_calculation(parsed_params: Dict[str, str], series: str) -> float:
     # creating a class object to collect materials and prices
-    print(parsed_params)
     mat_collector = MaterialCollector(series)
-    print(mat_collector.materials)
+    
     total_cost = 0
     width = float(parsed_params.get('width', 0))/1000
     depth = float(parsed_params.get('depth', 0))/1000

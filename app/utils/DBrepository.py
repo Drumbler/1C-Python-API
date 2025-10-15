@@ -15,13 +15,13 @@ class DBRepository:
 
     # name pass and user for local usage only!
     def __init__(self):
-        self.conn_data = {'dbname': os.environ.get('DB_NAME'),
-                          'user': os.environ.get('DB_USER'),
-                          'password': os.environ.get('DB_PASS'),
-                          'host': os.environ.get('DB_HOST', 'localhost'),
-                          'port': os.environ.get('DB_PORT', '5432'),
-                          "client_encoding": os.environ.get('DB_CLIENT_ENCODING', 'utf8')
+        self.conn_data = {'dbname': str(os.environ.get('DB_NAME')),
+                          'user': str(os.environ.get('DB_USER')),
+                          'password': str(os.environ.get('DB_PASS')),
+                          'host': str(os.environ.get('DB_HOST')),
+                          'port': str(5432),
                           }
+    # os.environ.get('DB_PORT').encode('utf-8')
 
     def get_materials_for_products(self, series: str) -> Dict[int, List[str]]:
         '''
@@ -31,7 +31,7 @@ class DBRepository:
 
         if not series:
             raise RuntimeError("Series cannot be empty")
-        with psycopg2.connect(**self.conn_data) as conn:
+        with psycopg2.connect(**self.conn_data,) as conn:
             with conn.cursor() as cur:
                 cur.execute("""
                     SELECT m.id, m.abbreviation, m.name, mfp.misc, m.price * mfp.quantity AS total_price, mfp.alternative_abbreviations

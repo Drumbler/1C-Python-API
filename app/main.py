@@ -8,13 +8,13 @@ from pandas.errors import ParserError
 from app.controllers.calculation_controller import CalculationController
 from app.utils.handlers.exception_handler import ErrorHandlerMiddleware
 from app.schemas import CalculationRequest, CalculationResponse
-from app.utils import DBrepository
+from app.utils.DBrepository import DBRepository
 import app.utils.logger.log_config
 from app.utils.logger.logger import LoggingMiddleware
 # warning_logger, debug_logger, calculation_logger
 
 
-DBrepo = DBrepository.DBRepository()
+DBrepo = DBRepository()
 app = FastAPI()
 app.add_middleware(ErrorHandlerMiddleware)
 app.add_middleware(LoggingMiddleware, logger=logging.getLogger(__name__))
@@ -35,13 +35,13 @@ async def calculate_cost(request: CalculationRequest):
 
     try:
         cost = await calc_controller.calculation(request.series, request.parameters)
-        
+
         # Логируем успешный запрос в файл calculation_requests.log
         logger.info(f"Successful calculation: {cost}", extra={
             "request": request.model_dump(),
             "response": cost
         })
-        
+
         return {'cost': cost}
 
     except ValueError as ve:

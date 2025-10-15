@@ -19,7 +19,6 @@ class MaterialCollector:
         misc = 0
         keys_to_drop = []
         misc_ind = 2
-        print(self.series)
         for key, lst in self.materials.items():
             if len(lst) > misc_ind and lst[misc_ind]:
                 misc += lst[-2]
