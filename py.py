@@ -9,11 +9,21 @@
 # print(type(shelf_count))
 from re import findall
 
+from app.data.gusset_class import GussetType
 
-def find_series_last_char(series: str) -> str:
 
-    TARGET_LETTERS = 'БНЛПЭСУ'
-    matches = findall(r"[{}]".format(TARGET_LETTERS), series)
-    return matches[-1] if matches else None
+# def find_series_last_char(series: str) -> str:
 
-print(find_series_last_char('Стеллаж СтПЭ'))
+#     TARGET_LETTERS = 'БНЛПЭСУ'
+#     matches = findall(r"[{}]".format(TARGET_LETTERS), series)
+#     return matches[-1] if matches else None
+
+
+# print(find_series_last_char('Стеллаж СтПЭ'))
+
+
+border = float(('борт(45мм)').split('(')[-1].strip(')м'))
+print((border))
+
+inp = 'лазерная резка'
+print(GussetType.get_type(inp))

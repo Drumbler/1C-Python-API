@@ -1,5 +1,6 @@
 from re import findall
-from app.data.classes import ShelfType
+from app.data.gusset_class import GussetType
+from app.data.shelf_class import ShelfType
 from app.modules.material_collector import MaterialCollector
 
 
@@ -47,8 +48,9 @@ def calculate_default_shelf_cost(material_base: MaterialCollector,
             shelf_cost *= (1 + float(material_base.get_price_by_id(226)))
         case ShelfType.GRILLE:
             shelf_cost += float(material_base.get_price_by_id(225))
+    shelf_reinforcement = calculate_shelf_reinforcement(material_base, width)
     # Попробовать потом * (1 + calculate_difficulty_сoef(width, depth, material))
-    return shelf_cost + ral_cost
+    return shelf_cost + ral_cost + shelf_reinforcement
 
 
 def calculate_plank_racks_and_backwalls(material_base: MaterialCollector,
@@ -237,11 +239,15 @@ def crossmember_calc(material_base: MaterialCollector,
     return total_cost
 
 
-def gusset_calc(series, height, depth) -> float:
+def gusset_calc(material_base: MaterialCollector,
+                height: float,
+                depth: float,
+                gusset_type: GussetType) -> float:
     total_cost = 0
-
-    # total_cost = (height + GUSSET_CUT[series]['height']) * (
-    #     depth + GUSSET_CUT[series]['depth']) * material_prices['нерж.ст. 430 0.8мм']
+    gusset_area = (height + 0.25) * (depth + 0.25)
+    total_cost += gusset_area * material_base.get_price_by_id(1)
+    total_cost += material_base.get_price_by_id(143) * 8
+    # Добавить наценки за типы косынок GussetType
     return total_cost
 
 

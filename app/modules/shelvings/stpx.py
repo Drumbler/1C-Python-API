@@ -1,5 +1,5 @@
 from typing import Dict
-from app.data.classes import ShelfType
+from app.data.shelf_class import ShelfType
 from app.modules.neutral_base import calculate_shelf_reinforcement, calculate_default_shelf_cost, calculate_difficulty_сoef, pillar_calc
 from app.modules.material_collector import MaterialCollector
 

@@ -1,4 +1,4 @@
-from app.data.classes import ShelfType
+from app.data.shelf_class import ShelfType
 from app.modules.material_collector import MaterialCollector
 from typing import Dict
 from app.modules.neutral_base import border_calc, cabinet_calc, calculate_default_shelf_cost, calculate_table_shelf_cost, parse_type_material, pillar_calc, crossmember_calc, tabletop_calc
@@ -101,14 +101,14 @@ def cost_calculation(parsed_params: Dict[str, str], series: str) -> float:
     else:
         cabinet_cost = 0
     if tabletop_rounding != 'нет':
-        total_cost += MaterialCollector.get_price_by_id('id of rounding')
+        total_cost += MatCollector.get_price_by_id('id of rounding')
 
     pillar_cost = pillar_calc(MatCollector, series, width, height)
     pillar_cost = pillar_cost if pillars == 'стандарт' else pillar_cost * 2
     total_cost += tabletop_cost + shelf_cross_cost + \
         pillar_cost + border_cost + cabinet_cost
-    total_cost += MaterialCollector.get_price_by_abbr(pillar_wheels)
-    total_cost += MaterialCollector.calculate_misc()
+    total_cost += MatCollector.get_price_by_abbr(pillar_wheels)
+    total_cost += MatCollector.calculate_misc()
 
     return total_cost
 
