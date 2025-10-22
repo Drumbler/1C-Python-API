@@ -15,6 +15,7 @@ def parse_params(parameters: str) -> float:
         'additional_reinf',
         'isAssembled'
     ]
+    
     values = parameters.split('/')
     return dict(zip(keys, values))
 
