@@ -18,8 +18,8 @@ class DBRepository:
         self.conn_data = {'dbname': str(os.environ.get('DB_NAME')),
                           'user': str(os.environ.get('DB_USER')),
                           'password': str(os.environ.get('DB_PASS')),
-                          'host': str(os.environ.get('DB_HOST')),
-                          'port': str(5432),
+                          'host': str(os.environ.get('DB_IP')),
+                          'port': str(os.environ.get('DB_PORT')),
                           }
     # os.environ.get('DB_PORT').encode('utf-8')
 
