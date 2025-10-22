@@ -18,7 +18,7 @@ def parse_params(parameters: str) -> Dict[str, str]:
         'width',
         'depth',
         'height',
-        'color',
+        'ral',
 
         'shelf_type_material',
         'shelf_count',

@@ -32,6 +32,19 @@ EXPOSE 5433
 HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
   CMD wget -qO- http://localhost:5433/docs || exit 1
 
+
+ARG DB_IP
+ARG DB_PORT
+ARG DB_PASS
+ARG DB_NAME
+ARG DB_USER
+
+ENV DB_HOST=${DB_IP} \
+    DB_PORT=${DB_PORT} \
+    DB_PASS=${DB_PASS} \
+    DB_NAME=${DB_NAME} \
+    DB_USER=${DB_USER}
+
 # КОМАНДА ЗАПУСКА:
 # Пример для FastAPI: uvicorn your_module:app --port 5433
 # ЗАМЕНИ на свой entrypoint/порт

@@ -37,7 +37,7 @@ def cost_calculation(series: str, parsed_params: Dict[str, str]) -> float:
 
     gusset_cost = gusset_calc(MatCollector, height, depth, gusset_type) * 2
     shelf_cost = calculate_default_shelf_cost(
-        MatCollector, width, depth, shelf_type=shelf_type)
+        MatCollector, width + border_size, depth + border_size, shelf_type=shelf_type)
 
     total_cost = (gusset_cost + shelf_cost) * 1.05
     return round(total_cost, 2)
