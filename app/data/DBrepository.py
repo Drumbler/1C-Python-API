@@ -3,25 +3,49 @@ import psycopg2
 from logging import getLogger
 from fastapi import HTTPException, UploadFile
 import pandas as pd
-from app.utils.handlers.module_loader import load_all_modules
 from dotenv import load_dotenv
+
+from app.controllers.module_loader import load_all_modules
 import os
 
 
 logger = getLogger(__name__)
 
 
+
 class DBRepository:
 
     # name pass and user for local usage only!
     def __init__(self):
+        load_dotenv()
         self.conn_data = {'dbname': str(os.environ.get('DB_NAME')),
                           'user': str(os.environ.get('DB_USER')),
                           'password': str(os.environ.get('DB_PASS')),
                           'host': str(os.environ.get('DB_IP')),
                           'port': str(os.environ.get('DB_PORT')),
                           }
-    # os.environ.get('DB_PORT').encode('utf-8')
+    '''
+    Строка ниже нужна для подключения к базе с ноутбука, в режиме дебага
+    '''
+        # self.conn_data = {'dbname': str(os.getenv('DB_NAME')),
+        #                   'user': str(os.getenv('DB_USER')),
+        #                   'password': str(os.getenv('DB_PASS')),
+        #                   'host': str(os.getenv('DB_IP')),
+        #                   'port': str(os.getenv('DB_PORT')),
+        #                   }
+
+    def get_module_file_location(self, series: str) -> str:
+        if not series:
+            raise RuntimeError("Series cannot be empty")
+        with psycopg2.connect(**self.conn_data,) as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT file_name FROM product_mapping
+                    JOIN products on products.file_loc=product_mapping.id
+                    WHERE products.series=(%s)
+                            """, (series,))
+                results = cur.fetchone()[0]
+        return results
 
     def get_materials_for_products(self, series: str) -> Dict[int, List[str]]:
         '''

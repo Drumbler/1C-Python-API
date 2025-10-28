@@ -5,7 +5,7 @@ import logging
 from uuid import uuid4
 from fastapi import FastAPI, Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
-from app.utils.logger.Iterator_wrapper import AsyncIteratorWrapper
+from app.logger.Iterator_wrapper import AsyncIteratorWrapper
 
 
 class LoggingMiddleware(BaseHTTPMiddleware):

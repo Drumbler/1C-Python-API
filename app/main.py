@@ -6,11 +6,11 @@ from pandas.errors import ParserError
 
 
 from app.controllers.calculation_controller import CalculationController
-from app.utils.handlers.exception_handler import ErrorHandlerMiddleware
+from app.controllers.exception_handler import ErrorHandlerMiddleware
 from app.schemas import CalculationRequest, CalculationResponse
-from app.utils.DBrepository import DBRepository
-import app.utils.logger.log_config
-from app.utils.logger.logger import LoggingMiddleware
+from app.data.DBrepository import DBRepository
+import app.logger.log_config
+from app.logger.logger import LoggingMiddleware
 # warning_logger, debug_logger, calculation_logger
 
 
@@ -55,6 +55,15 @@ async def calculate_cost(request: CalculationRequest):
         logger.exception("Unhandled exception during calculation", extra={
                          "location": error_location})
         raise HTTPException(status_code=500, detail=str(e))
+    
+@app.get('/series_file')
+async def get_series_file(series: str):
+    try:
+        file_location = DBrepo.get_module_file_location(series)
+        print(file_location, type(file_location))
+        return {'file_location': file_location}
+    except:
+        raise HTTPException(status_code=404, detail='Module not found')
 
 
 @app.post('/add_data')

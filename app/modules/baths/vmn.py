@@ -2,7 +2,7 @@
 
 from app.modules.material_collector import MaterialCollector
 from app.modules.neutral_base import find_series_last_char
-from app.data.shelf_class import ShelfType
+from app.utils.custom.shelf_class import ShelfType
 from app.modules.neutral_base import calculate_default_shelf_cost
 
 

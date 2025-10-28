@@ -1,8 +1,8 @@
 from typing import Dict
-from app.data.shelf_class import ShelfType
+from app.utils.custom.shelf_class import ShelfType
 from app.modules.material_collector import MaterialCollector
 from app.modules.neutral_base import calculate_default_shelf_cost, calculate_difficulty_сoef, calculate_shelf_reinforcement, pillar_calc
-from app.utils.handlers.request_handler import RequestHandler
+from app.controllers.request_handler import RequestHandler
 
 st_handler = RequestHandler()
 

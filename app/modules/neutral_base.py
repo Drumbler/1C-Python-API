@@ -1,6 +1,6 @@
 from re import findall
-from app.data.gusset_class import GussetType
-from app.data.shelf_class import ShelfType
+from app.utils.custom.gusset_class import GussetType
+from app.utils.custom.shelf_class import ShelfType
 from app.modules.material_collector import MaterialCollector
 
 

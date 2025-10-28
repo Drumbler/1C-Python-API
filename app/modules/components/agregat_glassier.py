@@ -1,5 +1,5 @@
-from app.utils.DBrepository import DBRepository
-from app.utils.handlers.request_handler import RequestHandler
+from app.data.DBrepository import DBRepository
+from app.controllers.request_handler import RequestHandler
 
 
 def calculate(*_) -> float:

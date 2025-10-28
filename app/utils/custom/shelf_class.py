@@ -19,10 +19,10 @@ class ShelfType(Enum):
         Возвращает тип полки по аббревиатуре или названию.
         Если значение не найдено, возвращает cls.STANDART.
         """
-        # Создаем словарь, где ключами являются как аббревиатуры, так и названия
+        # Создаем словарь, где ключами являются как аббревиатуры, сокращения и названия
         type_map = {}
         for item in cls:
             type_map[item.value] = item
             type_map[item.abbr] = item
             type_map[item.description] = item
-        return type_map.get(value, cls.STANDART)
+        return type_map.get(value, cls.STANDART)        

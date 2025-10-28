@@ -1,6 +1,6 @@
 import logging
 import logging.config
-from app.utils.logger.json_formatter import IndentedJsonFormatter
+from app.logger.json_formatter import IndentedJsonFormatter
 
 # Фильтр для логов ниже уровня WARNING (например, DEBUG и INFO)
 

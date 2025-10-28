@@ -1,6 +1,6 @@
 import re
 from typing import Dict, List
-from app.utils.DBrepository import DBRepository
+from app.data.DBrepository import DBRepository
 
 
 dbrepo = DBRepository()
