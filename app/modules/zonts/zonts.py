@@ -31,9 +31,10 @@ def min_cost_to_fill(zont_length, material):
 def get_difficult_implementation(material_base: MaterialCollector, 
                                  premium, unusual_impementation, 
                                  additional_options, series: str) -> float:
-    markup = 0
+    markup: float = 0.00
     if '04' in series: 
         markup += material_base.get_price_by_id(357) # островное исполнение @Drumbler
+    # markup += material_base.get_price_by_id('') 
 
     positions = {
         (1, 0, 0): "наценка.премиум",
@@ -377,6 +378,8 @@ def calculate(parameters: str, series: str)-> float:
         options['need_cuthole'] + 
         need_fan
     )
+    print(koeficient_of_marjinality, 'маржинальность')
+    print(difficult_of_product, 'сложность')
 
     full_cost = cost_of_production * ( koeficient_of_marjinality + difficult_of_product) + additional_cost
     return round(full_cost,2)

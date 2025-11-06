@@ -48,7 +48,7 @@ class MaterialCollector:
         '''
         abbr_ind = 0
         for key, lst in self.materials.items():
-            if len(lst) > abbr_ind and material_abbr in lst[abbr_ind]:
+            if len(lst) > abbr_ind and material_abbr == lst[abbr_ind]:
                 return lst[-1]
         return 0
 

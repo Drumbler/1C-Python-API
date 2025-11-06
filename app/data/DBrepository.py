@@ -24,9 +24,9 @@ class DBRepository:
                           'host': str(os.environ.get('DB_IP')),
                           'port': str(os.environ.get('DB_PORT')),
                           }
-    '''
-    Строка ниже нужна для подключения к базе при запуске api локально на своей машине(ПК)
-    '''
+        '''
+        Строка ниже нужна для подключения к базе при запуске api локально на своей машине(ПК)
+        '''
         # self.conn_data = {'dbname': str(os.getenv('DB_NAME')),
         #                   'user': str(os.getenv('DB_USER')),
         #                   'password': str(os.getenv('DB_PASS')),
