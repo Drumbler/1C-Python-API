@@ -169,8 +169,9 @@ def parse_parameters(parameters: str, series: str):
                 options['additional_options'] = 1
             options['needed_color'] = key
     options['difficult_implementation'] = get_difficult_implementation(
+        MaterialCollector(series),
         options['need_premium_zont'], options['unusual_implementation'],
-        options['additional_options']
+        options['additional_options'], series
     )
     return options, series
 
