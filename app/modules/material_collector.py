@@ -7,6 +7,9 @@ dbrepo = DBRepository()
 
 
 class MaterialCollector:
+    '''
+    Класс для подбора материалов для изделия из базы данных.
+    '''
     def __init__(self, series):
         self.series = series
         self.materials: Dict = dbrepo.get_materials_for_products(self.series)

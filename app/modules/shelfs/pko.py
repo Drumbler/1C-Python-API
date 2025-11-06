@@ -29,13 +29,13 @@ def cost_calculation(series: str, parsed_params: Dict[str, str]) -> float:
     depth = float(parsed_params['depth'])/1000
     height = float(parsed_params['height'])/1000
     shelf_type = ShelfType.get_type(parsed_params.get('shelf_type'))
-    border_size = int(parsed_params.get(
+    border_size = float(parsed_params.get(
         'border').split('(')[-1].strip(')м'))/1000
     gusset_type = GussetType.get_type(parsed_params.get('gusset_type'))
     mounts = parsed_params.get('mounts')
     additional_railing = parsed_params.get('additional_railing')
 
-    gusset_cost = gusset_calc(MatCollector, height, depth, gusset_type) * 2
+    gusset_cost = gusset_calc(MatCollector, height, depth, gusset_type) * 1.05
     shelf_cost = calculate_default_shelf_cost(
         MatCollector, width + border_size, depth + border_size, shelf_type=shelf_type)
 

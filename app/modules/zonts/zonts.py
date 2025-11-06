@@ -28,7 +28,13 @@ def min_cost_to_fill(zont_length, material):
                 costcontainer[length] = min(costcontainer[length], costcontainer[length - size] + cost)
     return vernut_blizaishee(costcontainer,zont_length)
 
-def get_difficult_implementation(premium, unusual_impementation, additional_options):
+def get_difficult_implementation(material_base: MaterialCollector, 
+                                 premium, unusual_impementation, 
+                                 additional_options, series: str) -> float:
+    markup = 0
+    if '04' in series: 
+        markup += material_base.get_price_by_id(357) # островное исполнение @Drumbler
+
     positions = {
         (1, 0, 0): "наценка.премиум",
         (1, 0, 1): "наценка.премиум",
@@ -39,7 +45,8 @@ def get_difficult_implementation(premium, unusual_impementation, additional_opti
         (0, 1, 0): "наценка.нестанд.",
         (0, 1, 1): "наценка.нестанд.доп.опции",
     }
-    return positions.get((premium, unusual_impementation, additional_options), "наценка.нестанд.доп.опции")
+    markup += material_base.get_price_by_abbr(positions.get((premium, unusual_impementation, additional_options), "наценка.нестанд.доп.опции"))
+    return markup
 
 def parse_parameters(parameters: str, series: str):
     """
@@ -219,7 +226,7 @@ def calculate(parameters: str, series: str)-> float:
     need_fan = 0 if not options['need_fan'] else material_db.get_price_by_abbr(options['need_fan'])
     
     
-    difficult_of_product = material_db.get_price_by_abbr(options['difficult_implementation'])
+    difficult_of_product = options['difficult_implementation']
     cost_of_production = 0
     additional_cost = 0
     

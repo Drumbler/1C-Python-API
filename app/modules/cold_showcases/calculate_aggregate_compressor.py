@@ -1,10 +1,11 @@
 
-def determine_compressor_power_level(dome_area: float,# Площадь купола, м²
-    door_area: float,                                 # Площадь дверей, м²
-    pan_area: float,                                  # Площадь ванны (дно), м²
-    dome_volume: float,                               # Объём купола, м³
-    target_temp_min: int                            # Минимальный температурный режим витрины, °C
-) -> int:
+def determine_compressor_power_level(
+        dome_area: float, # Площадь купола, м²
+        door_area: float, # Площадь дверей, м²
+        pan_area: float, # Площадь ванны (дно), м²
+        dome_volume: float, # Объём купола, м³
+        target_temp_min: int # Минимальный температурный режим витрины, °C
+        ) -> int:
     """
     Определяет уровень мощности компрессора (1(300Вт), 2(400Вт), 3(500Вт), 4(600Вт)) на основе
     геометрических параметров витрины и заданного температурного режима.

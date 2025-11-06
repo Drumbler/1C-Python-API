@@ -25,7 +25,7 @@ class DBRepository:
                           'port': str(os.environ.get('DB_PORT')),
                           }
     '''
-    Строка ниже нужна для подключения к базе с ноутбука, в режиме дебага
+    Строка ниже нужна для подключения к базе при запуске api локально на своей машине(ПК)
     '''
         # self.conn_data = {'dbname': str(os.getenv('DB_NAME')),
         #                   'user': str(os.getenv('DB_USER')),
@@ -33,7 +33,7 @@ class DBRepository:
         #                   'host': str(os.getenv('DB_IP')),
         #                   'port': str(os.getenv('DB_PORT')),
         #                   }
-
+    
     def get_module_file_location(self, series: str) -> str:
         if not series:
             raise RuntimeError("Series cannot be empty")

@@ -20,6 +20,9 @@ yes_no_dict = {
 
 
 def parse_type_material(shelf_type_material: str) -> str:
+    '''
+    Разделяет и возвращает тип и материал для обвязки или полки стола
+    '''
     if shelf_type_material == 'полка.нет' or shelf_type_material == 'обвязка.3ст':
         return None, shelf_type_material
     s_type, s_mat = shelf_type_material[:-1].split('(')
@@ -33,6 +36,9 @@ def calculate_default_shelf_cost(material_base: MaterialCollector,
                                  material: str | None,
                                  shelf_type: ShelfType | None,
                                  ral: str | None) -> float:
+    '''
+    Рассчитывает стоимость полки для стеллажа и подобных
+    '''
     if not material:
         material = 'н.ст.08'
     if not shelf_type:
@@ -56,6 +62,9 @@ def calculate_default_shelf_cost(material_base: MaterialCollector,
 def calculate_plank_racks_and_backwalls(material_base: MaterialCollector,
                                         width: float,
                                         depth: float) -> float:
+    '''
+    Рассчитывает и возвращает стоимость задней стенки и крепежей для стеллажей для сушки досок (СтППд)
+    '''
     back_wall = width * 0.170 * material_base.materials.get(1)[-2]
     rack = (depth + 0.170 * material_base.materials.get(283)
             [-2]) * (width // 0.015)
@@ -70,6 +79,9 @@ def calculate_table_shelf_cost(material_base: MaterialCollector,
                                shelf_type: ShelfType | str,
                                ral: float,
                                weld: str) -> float:
+    '''
+    Рассчитывает стоимость полки для стола
+    '''
     crossmember = crossmember_calc(material_base, series, width, depth, weld)
     shelf_cost = (width + 0.09) * (depth + 0.09) * \
         material_base.get_price_by_abbr(material)
@@ -84,10 +96,11 @@ def calculate_table_shelf_cost(material_base: MaterialCollector,
         material_base.get_price_by_abbr(ral)
     return shelf_cost + ral_cost
 
-    pass
-
 
 def calculate_shelf_reinforcement(material_base: MaterialCollector, width: float) -> float:
+    '''
+    Рассчитывает стоимость усиления полки
+    '''
     return ((width + 0.09) * float(material_base.get_price_by_id(12)))
 
 
@@ -100,6 +113,9 @@ def calculate_shelf_reinforcement(material_base: MaterialCollector, width: float
 #     return None
 
 def find_series_last_char(series: str) -> str:
+    '''
+    Функция для поиска последней буквы в серии, которая означает материал изделия
+    '''
 
     TARGET_LETTERS = 'БНЛПЭСУ'
     matches = findall(r"[{}]".format(TARGET_LETTERS), series)
@@ -112,6 +128,9 @@ def tabletop_calc(material_base: MaterialCollector,
                   depth: float,
                   tabletop_material: str,
                   underlayment_material: str) -> float:
+    '''
+    Рассчитывает стоимость столешницы для стола
+    '''
     total_cost = 0
     tabletop_cost = (width + 0.090) * (depth + 0.090) * \
         float(material_base.get_price_by_abbr(tabletop_material))
@@ -129,8 +148,11 @@ def tabletop_calc(material_base: MaterialCollector,
 
 
 def border_calc(material_base: MaterialCollector, width: float, depth: float, border: str, border_fold: bool, material: str):
+    '''
+    Рассчитывает стоимость борта для столов
+    '''
     total_cost = 0
-    border_type, border_sides, border_size = define_border_type(border)
+    border_type, border_sides, border_size = _define_border_type(border)
     if border_sides == '3ст':
         total_cost = 2 * (depth * border_size * material_base.get_price_by_abbr(
             material)) + (width * border_size * material_base.get_price_by_abbr(material))
@@ -147,7 +169,10 @@ def border_calc(material_base: MaterialCollector, width: float, depth: float, bo
     return total_cost
 
 
-def define_border_type(border: str):
+def _define_border_type(border: str) -> list[str, str, int]:
+    '''
+    Определяет тип борта
+    '''
     size_int = 0
     border_type, size = border.split('(')
     size = size.strip('мм)')
@@ -167,7 +192,10 @@ def define_border_type(border: str):
 def cabinet_calc(material_base: MaterialCollector,
                  series: str,
                  sizes: list[int]
-                 ):
+                 ) -> float:
+    '''
+    Рассчитывает стоимость ящика для стола
+    '''
     material = material_base.get_price_by_abbr(find_series_last_char(series))
     cab_width, cab_depth = sizes
     cabinet_guide = material * (cab_depth + 0.060) * 0.080
@@ -205,6 +233,9 @@ def crossmember_calc(material_base: MaterialCollector,
                      series: str, width: float,
                      depth: float, weld: str,
                      crossmember_type: str | None) -> float:
+    '''
+    Функция для расчета стоимости поперечин стола
+    '''
     total_cost = 0
     material_abbr = find_series_last_char(series)
     if weld == 'сварн':
@@ -242,7 +273,13 @@ def crossmember_calc(material_base: MaterialCollector,
 def gusset_calc(material_base: MaterialCollector,
                 height: float,
                 depth: float,
-                gusset_type: GussetType) -> float:
+                gusset_type: GussetType | None) -> float:
+    '''
+    Рассчитывает стоимость одной косынки для полок консольных
+    (Все еще в разработке)
+    '''
+    if gusset_type is None:
+        gusset_type = GussetType.STANDART
     total_cost = 0
     gusset_area = (height + 0.25) * (depth + 0.25)
     total_cost += gusset_area * material_base.get_price_by_id(1)
@@ -255,10 +292,13 @@ def find_rack_size():
     # т - 505р 600мм, 495р 700мм, 652р 800мм 727р 900мм
     # с - 332р 500мм,360р 600мм, 389р 700мм, 418р 800мм, 460р 900мм
     # п 500мм-1000мм,
-    pass
+    return
 
 
 def calculate_difficulty_сoef(width: float, depth: float, material: str) -> float:
+    '''
+    Рассчитывает коэффциент наценки за сложность изготовляемого стеллажа
+    '''
     criteria = [
         (width,    EASY_WIDTHS,    0.05),
         (depth,    EASY_DEPTHS,    0.05),
