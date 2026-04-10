@@ -46,7 +46,8 @@ def cost_calculation(parsed_params: Dict[str, str], series: str) -> float:
     # creating a class object to collect materials and prices
     mat_collector = MaterialCollector(series)
     
-    total_cost = 0
+    total_cost: float = 0.00
+    markup: float = 0.00
     width = float(parsed_params.get('width', 0))/1000
     depth = float(parsed_params.get('depth', 0))/1000
     height = float(parsed_params.get('height', 0))/1000
@@ -65,7 +66,7 @@ def cost_calculation(parsed_params: Dict[str, str], series: str) -> float:
 
     pillar_cost = pillar_calc(mat_collector, series,
                               width, height, ral_p)
-    print(pillar_cost)
+    print('pillars cost: ', pillar_cost)
 
     shelfs_cost: float = 0.00
     for char in shelf_order:
@@ -74,24 +75,24 @@ def cost_calculation(parsed_params: Dict[str, str], series: str) -> float:
             mat_collector, width, depth,
             shelf_material, s_type,
             ral_s)
-        shelfs_cost += calculate_shelf_reinforcement(
-            mat_collector, width)
         if reinf == 'усиление.да':
             shelfs_cost += calculate_shelf_reinforcement(
                 mat_collector, width)
-    print(shelfs_cost)
+    print('shelfs cost: ', shelfs_cost)
     misc_cost = mat_collector.calculate_misc()
     total_cost += float(mat_collector.get_price_by_abbr(isAssembled))
     total_cost += float(mat_collector.get_price_by_abbr(stands))
 
     total_cost = pillar_cost + shelfs_cost + misc_cost
+    print('total: ',total_cost)
     # Проверить еще коэффициенты к полкам, только полкам
-    return total_cost * calculate_difficulty_сoef(width, depth, shelf_material)
+    markup = calculate_difficulty_сoef(width, depth, shelf_material)
+    return total_cost * markup, markup
 
 
 def calculate(parameters: str, series: str) -> float:
 
     parsed_params = parse_parameters(parameters)
-    cost = cost_calculation(parsed_params, series)
+    cost, markup = cost_calculation(parsed_params, series)
 
-    return round(cost, 2)
+    return round(cost, 2), markup

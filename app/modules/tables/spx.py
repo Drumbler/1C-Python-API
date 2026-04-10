@@ -118,3 +118,4 @@ def calculate(parameters: str, series: str) -> float:
     cost = cost_calculation(parsed_params, series)
 
     return round(cost, 2)
+

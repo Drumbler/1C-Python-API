@@ -37,7 +37,7 @@ def parse_parameters(parameters: str, series: str):
     options = {
         'led_profile':'профиль.подсветка',
         'mounting_foam':'пена',
-        'material_inner_C':'ОЦ.ст.08',
+        'material_inner_C':'оц.ст.07',
         'material_outer_C':'нерж.ст.08',
         'material_bath_C':'нерж.ст.10',
         'material_dome':'стелко.08',

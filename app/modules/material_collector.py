@@ -22,10 +22,11 @@ class MaterialCollector:
         misc = 0
         keys_to_drop = []
         misc_ind = 2
-        for key, lst in self.materials.items():
+        for key, lst in self.materials.items(): 
             if len(lst) > misc_ind and lst[misc_ind]:
-                misc += lst[-2]
+                misc += lst[-1]
                 keys_to_drop.append(key)
+        
 
         for key in keys_to_drop:
             del self.materials[key]
@@ -47,7 +48,7 @@ class MaterialCollector:
         загружается выгрузка базы материалов.
         '''
         abbr_ind = 0
-        for key, lst in self.materials.items():
+        for _, lst in self.materials.items():
             if len(lst) > abbr_ind and material_abbr == lst[abbr_ind]:
                 return lst[-1]
         return 0

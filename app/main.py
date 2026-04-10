@@ -34,7 +34,8 @@ async def calculate_cost(request: CalculationRequest):
         raise HTTPException(status_code=400, detail="Parameters are required")
 
     try:
-        cost = await calc_controller.calculation(request.series, request.parameters)
+        cost, markup = await calc_controller.calculation(request.series, request.parameters)
+        
 
         # Логируем успешный запрос в файл calculation_requests.log
         logger.info(f"Successful calculation: {cost}", extra={
@@ -42,7 +43,7 @@ async def calculate_cost(request: CalculationRequest):
             "response": cost
         })
 
-        return {'cost': cost}
+        return {'cost': cost, 'markup': markup}
 
     except ValueError as ve:
         logger.error(f"Unknown Module. ValueError: {ve}")

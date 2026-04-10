@@ -30,8 +30,8 @@ def parse_parameters(parameters: str, series: str):
 
     MATERIAL_FOR_PLATE = 'н.ст.08'
     MATERIAL_FOR_BATH = '439.н.ст.10'
-    MATERIAL_FOR_APRON = 'оц.ст.08'
-    MATERIAL_FOR_BRACING = 'оц.ст.08'
+    MATERIAL_FOR_APRON = 'оц.ст.07'
+    MATERIAL_FOR_BRACING = 'оц.ст.07'
     
     parameters_list = parameters.split('/')
     options = {

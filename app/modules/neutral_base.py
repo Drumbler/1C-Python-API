@@ -30,7 +30,7 @@ def parse_type_material(shelf_type_material: str) -> str:
     return s_type, s_mat
 
 
-def calculate_default_shelf_cost(material_base: MaterialCollector,
+def calculate_default_shelf_cost(MaterialBase: MaterialCollector,
                                  width: float,
                                  depth: float,
                                  material: str | None,
@@ -45,33 +45,33 @@ def calculate_default_shelf_cost(material_base: MaterialCollector,
         shelf_type = ShelfType.STANDART
     if not ral:
         ral = '-'
-    shelf_cost = material_base.get_price_by_abbr(
+    shelf_cost = MaterialBase.get_price_by_abbr(
         material) * (width + 0.09) * (depth + 0.09)
     ral_cost = (width + 0.09) * (depth + 0.09) * \
-        material_base.get_price_by_abbr(ral)
+        MaterialBase.get_price_by_abbr(ral)
     match shelf_type:
         case ShelfType.PERFORATED:
-            shelf_cost *= (1 + float(material_base.get_price_by_id(226)))
+            shelf_cost *= (1 + float(MaterialBase.get_price_by_id(226)))
         case ShelfType.GRILLE:
-            shelf_cost += float(material_base.get_price_by_id(225))
-    shelf_reinforcement = calculate_shelf_reinforcement(material_base, width)
+            shelf_cost += float(MaterialBase.get_price_by_id(225))
+    shelf_reinforcement = calculate_shelf_reinforcement(MaterialBase, width)
     # Попробовать потом * (1 + calculate_difficulty_сoef(width, depth, material))
     return shelf_cost + ral_cost + shelf_reinforcement
 
 
-def calculate_plank_racks_and_backwalls(material_base: MaterialCollector,
+def calculate_plank_racks_and_backwalls(MaterialBase: MaterialCollector,
                                         width: float,
                                         depth: float) -> float:
     '''
     Рассчитывает и возвращает стоимость задней стенки и крепежей для стеллажей для сушки досок (СтППд)
     '''
-    back_wall = width * 0.170 * material_base.materials.get(1)[-2]
-    rack = (depth + 0.170 * material_base.materials.get(283)
+    back_wall = width * 0.170 * MaterialBase.materials.get(1)[-2]
+    rack = (depth + 0.170 * MaterialBase.materials.get(283)
             [-2]) * (width // 0.015)
     return back_wall + rack
 
 
-def calculate_table_shelf_cost(material_base: MaterialCollector,
+def calculate_table_shelf_cost(MaterialBase: MaterialCollector,
                                series: str,
                                width: float,
                                depth: float,
@@ -82,26 +82,26 @@ def calculate_table_shelf_cost(material_base: MaterialCollector,
     '''
     Рассчитывает стоимость полки для стола
     '''
-    crossmember = crossmember_calc(material_base, series, width, depth, weld)
+    crossmember = crossmember_calc(MaterialBase, series, width, depth, weld)
     shelf_cost = (width + 0.09) * (depth + 0.09) * \
-        material_base.get_price_by_abbr(material)
+        MaterialBase.get_price_by_abbr(material)
     match shelf_type:
         case ShelfType.PERFORATED:
-            shelf_cost *= (1 + float(material_base.get_price_by_id(226)))
+            shelf_cost *= (1 + float(MaterialBase.get_price_by_id(226)))
         case ShelfType.GRILLE:
-            shelf_cost += float(material_base.get_price_by_id(225))
+            shelf_cost += float(MaterialBase.get_price_by_id(225))
     shelf_cost += calculate_shelf_reinforcement(
-        material_base, width + 0.09) + crossmember
+        MaterialBase, width + 0.09) + crossmember
     ral_cost = (width + 0.09) * (depth + 0.09) * \
-        material_base.get_price_by_abbr(ral)
+        MaterialBase.get_price_by_abbr(ral)
     return shelf_cost + ral_cost
 
 
-def calculate_shelf_reinforcement(material_base: MaterialCollector, width: float) -> float:
+def calculate_shelf_reinforcement(MaterialBase: MaterialCollector, width: float) -> float:
     '''
     Рассчитывает стоимость усиления полки
     '''
-    return ((width + 0.09) * float(material_base.get_price_by_id(12)))
+    return ((width + 0.09) * float(MaterialBase.get_price_by_id(12)))
 
 
 # def find_series_last_char(series: str) -> str:
@@ -122,7 +122,7 @@ def find_series_last_char(series: str) -> str:
     return matches[-1] if matches else None
 
 
-def tabletop_calc(material_base: MaterialCollector,
+def tabletop_calc(MaterialBase: MaterialCollector,
                   series: str,
                   width: float,
                   depth: float,
@@ -133,38 +133,38 @@ def tabletop_calc(material_base: MaterialCollector,
     '''
     total_cost = 0
     tabletop_cost = (width + 0.090) * (depth + 0.090) * \
-        float(material_base.get_price_by_abbr(tabletop_material))
+        float(MaterialBase.get_price_by_abbr(tabletop_material))
     # Идея: Сделать еще одну табличку для записи материалов по букве серии (id, series_id(Может FK), series_letter, mat_id(FK))
     side_apron_cost = (depth - 0.140) * 0.150 * \
-        float(material_base.get_price_by_abbr(find_series_last_char(series)))
+        float(MaterialBase.get_price_by_abbr(find_series_last_char(series)))
     back_apron_cost = (width - 0.140) * 0.150 * \
-        float(material_base.get_price_by_abbr(find_series_last_char(series)))
+        float(MaterialBase.get_price_by_abbr(find_series_last_char(series)))
 
     underlayment_cost = (width + 0.090) * depth + 0.090 * \
-        float(material_base.get_price_by_abbr(underlayment_material))
+        float(MaterialBase.get_price_by_abbr(underlayment_material))
     total_cost += tabletop_cost + side_apron_cost + \
         back_apron_cost + underlayment_cost
     return total_cost
 
 
-def border_calc(material_base: MaterialCollector, width: float, depth: float, border: str, border_fold: bool, material: str):
+def border_calc(MaterialBase: MaterialCollector, width: float, depth: float, border: str, border_fold: bool, material: str):
     '''
     Рассчитывает стоимость борта для столов
     '''
     total_cost = 0
     border_type, border_sides, border_size = _define_border_type(border)
     if border_sides == '3ст':
-        total_cost = 2 * (depth * border_size * material_base.get_price_by_abbr(
-            material)) + (width * border_size * material_base.get_price_by_abbr(material))
+        total_cost = 2 * (depth * border_size * MaterialBase.get_price_by_abbr(
+            material)) + (width * border_size * MaterialBase.get_price_by_abbr(material))
     elif border_sides == '2ст':
-        total_cost = (depth * border_size * material_base.get_price_by_abbr(material)) + \
-            (width * border_size * material_base.get_price_by_abbr(material))
+        total_cost = (depth * border_size * MaterialBase.get_price_by_abbr(material)) + \
+            (width * border_size * MaterialBase.get_price_by_abbr(material))
     if border_type == 'объемн.борт':
         total_cost = (width + 0.40 * border_size *
-                      material_base.get_price_by_abbr(material))
+                      MaterialBase.get_price_by_abbr(material))
     if border_fold != '-':
         total_cost += width + (depth * 2) * 0.040 * \
-            material_base.get_price_by_abbr(material)
+            MaterialBase.get_price_by_abbr(material)
 
     return total_cost
 
@@ -189,14 +189,14 @@ def _define_border_type(border: str) -> list[str, str, int]:
     return [border_type, border_sides, size_int]
 
 
-def cabinet_calc(material_base: MaterialCollector,
+def cabinet_calc(MaterialBase: MaterialCollector,
                  series: str,
                  sizes: list[int]
                  ) -> float:
     '''
     Рассчитывает стоимость ящика для стола
     '''
-    material = material_base.get_price_by_abbr(find_series_last_char(series))
+    material = MaterialBase.get_price_by_abbr(find_series_last_char(series))
     cab_width, cab_depth = sizes
     cabinet_guide = material * (cab_depth + 0.060) * 0.080
     cabinet = ((cab_width + 0.140 * 2) * (cab_depth + 0.020 * 2)) * material
@@ -206,7 +206,7 @@ def cabinet_calc(material_base: MaterialCollector,
     return total_cost
 
 
-def pillar_calc(material_base: MaterialCollector,
+def pillar_calc(MaterialBase: MaterialCollector,
                 series: str,
                 width: float,
                 height: float,
@@ -216,20 +216,17 @@ def pillar_calc(material_base: MaterialCollector,
         ral = '-'
     total_cost = 0
     pillar_count = 4 if width <= 1.800 else 6
-    ral_cost = (0.04 * 2) * height * material_base.get_price_by_abbr(ral)
-    print(find_series_last_char(series))
-    print(material_base.get_price_by_abbr(find_series_last_char(series)))
+    ral_cost = (0.04 * 2) * height * MaterialBase.get_price_by_abbr(ral)
+    print(MaterialBase.get_price_by_abbr(find_series_last_char(series)))
     pillar_cost = height * \
-        float(material_base.get_price_by_abbr(find_series_last_char(series)))
-    print('pillar cost:', pillar_cost)
-    print('ral cost:', ral_cost)
-    print(total_cost)
+        float(MaterialBase.get_price_by_abbr(find_series_last_char(series)))
+    print('ral_p cost:', ral_cost)
     total_cost += (pillar_cost + ral_cost) * pillar_count
 
     return total_cost
 
 
-def crossmember_calc(material_base: MaterialCollector,
+def crossmember_calc(MaterialBase: MaterialCollector,
                      series: str, width: float,
                      depth: float, weld: str,
                      crossmember_type: str | None) -> float:
@@ -247,22 +244,22 @@ def crossmember_calc(material_base: MaterialCollector,
     total_cost = 0
     if series in pipe_series:
 
-        reinforcement_corner = 0.08 * 0.08 * material_base.get_price_by_abbr(
+        reinforcement_corner = 0.08 * 0.08 * MaterialBase.get_price_by_abbr(
             find_series_last_char(series)) * 8
 
         width_harness = width * \
-            material_base.get_price_by_abbr(material_abbr)
+            MaterialBase.get_price_by_abbr(material_abbr)
 
         depth_harness = depth * \
-            material_base.get_price_by_abbr(material_abbr)
+            MaterialBase.get_price_by_abbr(material_abbr)
     else:
-        reinforcement_corner = 0.04 * 0.04 * material_base.get_price_by_abbr(
+        reinforcement_corner = 0.04 * 0.04 * MaterialBase.get_price_by_abbr(
             find_series_last_char(series)) * 8
 
         width_harness = width - 0.05 * \
-            material_base.get_price_by_abbr(find_series_last_char(series))
+            MaterialBase.get_price_by_abbr(find_series_last_char(series))
         depth_harness = depth - 0.05 * \
-            material_base.get_price_by_abbr(find_series_last_char(series))
+            MaterialBase.get_price_by_abbr(find_series_last_char(series))
     if crossmember_type == 'обвязка.3ст':
         total_cost += width_harness + depth_harness * 2
     total_cost += reinforcement_corner
@@ -270,7 +267,7 @@ def crossmember_calc(material_base: MaterialCollector,
     return total_cost
 
 
-def gusset_calc(material_base: MaterialCollector,
+def gusset_calc(MaterialBase: MaterialCollector,
                 height: float,
                 depth: float,
                 gusset_type: GussetType | None) -> float:
@@ -282,8 +279,8 @@ def gusset_calc(material_base: MaterialCollector,
         gusset_type = GussetType.STANDART
     total_cost = 0
     gusset_area = (height + 0.25) * (depth + 0.25)
-    total_cost += gusset_area * material_base.get_price_by_id(1)
-    total_cost += material_base.get_price_by_id(143) * 8
+    total_cost += gusset_area * MaterialBase.get_price_by_id(1)
+    total_cost += MaterialBase.get_price_by_id(143) * 8
     # Добавить наценки за типы косынок GussetType
     return total_cost
 
@@ -305,7 +302,7 @@ def calculate_difficulty_сoef(width: float, depth: float, material: str) -> flo
         (material, EASY_MATERIALS, 0.10),
     ]
 
-    coef = 0.0
+    coef: float = 0.0
     for value, allowed, weight in criteria:
         if width == 1.16 and allowed in (EASY_WIDTHS, EASY_MATERIALS):
             continue

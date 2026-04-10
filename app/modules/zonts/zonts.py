@@ -12,11 +12,11 @@ def min_cost_to_fill(zont_length, material):
     """
     zont_length *= 10
     fliter_size = [2,3,4,5,6]  # Их размеры 200мм,300мм и т.д.
-    JU200 = ((0.059*0.57) * 5 + (0.19*0.053) * 4 + (0.58*0.053) * 4 + (0.06*0.08) * 2) * material + 100 # Стоимость трудозатрат 100 рублей (по хорошему отдельная переменная на вход)
-    JU300 = ((0.059*0.57) * 7 + (0.29*0.053) * 4 + (0.58*0.053) * 4 + (0.06*0.08) * 2) * material + 100
-    JU400 = ((0.059*0.57) * 9 + (0.39*0.053) * 4 + (0.58*0.053) * 4 + (0.06*0.08) * 2) * material + 100
-    JU500 = ((0.059*0.57) * 11 + (0.49*0.053) * 4 + (0.58*0.053) * 4 + (0.06*0.08) * 2) * material + 100
-    JU600 = ((0.059*0.57) * 15 + (0.59*0.053) * 4 + (0.58*0.053) * 4 + (0.06*0.08) * 2) * material + 100
+    JU200 = ((0.059*0.57) * 5 + (0.19*0.053) * 4 + (0.58*0.053) * 4 + (0.06*0.08) * 2) * material + 45 # Стоимость трудозатрат 45 (было 100) рублей (по хорошему отдельная переменная на вход)
+    JU300 = ((0.059*0.57) * 7 + (0.29*0.053) * 4 + (0.58*0.053) * 4 + (0.06*0.08) * 2) * material + 45
+    JU400 = ((0.059*0.57) * 9 + (0.39*0.053) * 4 + (0.58*0.053) * 4 + (0.06*0.08) * 2) * material + 45
+    JU500 = ((0.059*0.57) * 11 + (0.49*0.053) * 4 + (0.58*0.053) * 4 + (0.06*0.08) * 2) * material + 45
+    JU600 = ((0.059*0.57) * 15 + (0.59*0.053) * 4 + (0.58*0.053) * 4 + (0.06*0.08) * 2) * material + 45
     filter_costs = [JU200,JU300,JU400,JU500,JU600] # Их стоимости
 
     #costcontainer хранит значения минимальных стоимостей для длин
@@ -75,10 +75,11 @@ def parse_parameters(parameters: str, series: str):
         'need_cuthole': None,
         'need_fan': None,
         'material_nerj': 'н.ст.08',
-        'material_ocin': 'оц.ст.08',
+        'material_ocin': 'оц.ст.07',
         'faucet': 'кран.сливной',
         'koeficient_of_marjinality': 'наценка',
         'difficult_implementation': None,
+        'work_price_abbreviation': 'работа.' + series,
     }
     colors_of_zonts = [
         'RAL9005','RAL7024','RAL7001',
@@ -127,7 +128,7 @@ def parse_parameters(parameters: str, series: str):
             options['material'] = key
             options['material_of_backplate'] = key
         elif key == 'задн.ст.ОЦИНК':
-            options['material_of_backplate'] = 'оц.ст.08'          
+            options['material_of_backplate'] = 'оц.ст.07'          
         elif key == 'без.фильтр':
             options['need_filter'] = 0
         elif key == 'искрогас':
@@ -174,7 +175,10 @@ def parse_parameters(parameters: str, series: str):
         options['need_premium_zont'], options['unusual_implementation'],
         options['additional_options'], series
     )
+    if 'ПРЕМИУМ' in options['work_price_abbreviation']:
+        options['work_price_abbreviation'] = options['work_price_abbreviation'].replace('ПРЕМИУМ', '')
     return options, series
+
 
 def calculate(parameters: str, series: str)-> float:
     """
@@ -198,13 +202,14 @@ def calculate(parameters: str, series: str)-> float:
     material_nerj = material_db.get_price_by_abbr(options['material_nerj'])
     material_ocin = material_db.get_price_by_abbr(options['material_ocin'])
     faucet = material_db.get_price_by_abbr(options['faucet'])
-    
+    work_price = material_db.get_price_by_abbr(options['work_price_abbreviation'])
+           
     koeficient_of_marjinality = 1 + \
         material_db.get_price_by_abbr(options['koeficient_of_marjinality'])
     
     if options['need_cube_zont']:
-        koeficient_of_marjinality *= \
-        (1 + material_db.get_price_by_abbr(options['need_cube_zont']))
+        koeficient_of_marjinality += \
+        (material_db.get_price_by_abbr(options['need_cube_zont']))
 
     if options['needed_color']:
         material += material_db.get_price_by_abbr(options['needed_color'])
@@ -226,13 +231,11 @@ def calculate(parameters: str, series: str)-> float:
         options['need_torchs'] = 0
     options['need_cuthole'] = 0 if not options['need_cuthole'] else material_db.get_price_by_abbr(options['need_cuthole'])
     need_fan = 0 if not options['need_fan'] else material_db.get_price_by_abbr(options['need_fan'])
-    
-    
+        
     difficult_of_product = options['difficult_implementation']
     cost_of_production = 0
     additional_cost = 0
-    
-    
+       
     # Находим стоимость жироуловителей в зонте
     cost_of_filters = min_cost_to_fill(width, material_nerj)
     
@@ -268,7 +271,7 @@ def calculate(parameters: str, series: str)-> float:
                 # Площадь "потолка" зонта
                 (width + 0.05) * (depth + 0.035) +
                 # Боковые панели
-                2 * (depth * height - 0.5 * ((height - 0.1) * (depth - 0.1)) + 2 * 0.01 * 0.1)
+                2 * (depth * (height - 0.5) * ((height - 0.1) * (depth - 0.1)) + 2 * 0.01 * 0.1)
             )
         if '01' in series:
             if 'П' in series: 
@@ -304,6 +307,7 @@ def calculate(parameters: str, series: str)-> float:
                 width * (depth- 2 * x + 0.04) + # Площадь "потолка" зонта
                 4 * (depth/2 * height - 0.5 * ((height-0.1)*x) + 0.03 * depth/2 + 0.02 * (depth/2-x)) # Боковые панели
             )
+            
         else:
             if depth < 1:
                 x = 0.13
@@ -342,7 +346,7 @@ def calculate(parameters: str, series: str)-> float:
         # Патрубок
         (0.8 * 0.75) * material_ocin +
         # Жироуловители умноженные на коэффициент прогрешности
-        cost_of_filters * 1.1 * options['need_filter'] * options['need_premium_filter'] +
+        cost_of_filters * options['need_filter'] * options['need_premium_filter'] +
         # Цена задней панели
         height * (width + 0.01) * material_of_backplate + 
         # Цена остального корпуса
@@ -358,12 +362,12 @@ def calculate(parameters: str, series: str)-> float:
         # Рассекатели (ставятся по одному на каждые 400мм)
         divider_cost * ((depth + 0.39)//0.4) +
         # Расходники из базы данных
-        components
+        components + work_price
     )
     if "04" in series:
         cost_of_production += (
             # Жироуловители умноженные на коэффициент прогрешности
-            cost_of_filters * 1.1 * options['need_filter'] * options['need_premium_filter'] +
+            cost_of_filters * options['need_filter'] * options['need_premium_filter'] +
             # Ванна
             width * 0.15 * material +
             # Уникальные особенности каждой серии
@@ -378,8 +382,11 @@ def calculate(parameters: str, series: str)-> float:
         options['need_cuthole'] + 
         need_fan
     )
-    print(koeficient_of_marjinality, 'маржинальность')
-    print(difficult_of_product, 'сложность')
+    # print(difficult_of_product, 'сложность')
+    # Наценка на обрезь, 10 процентов
+    cost_of_production *= 1.10
+    
 
     full_cost = cost_of_production * ( koeficient_of_marjinality + difficult_of_product) + additional_cost
-    return round(full_cost,2)
+
+    return round(full_cost,2), (koeficient_of_marjinality + difficult_of_product)

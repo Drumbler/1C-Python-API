@@ -17,22 +17,23 @@ class DBRepository:
 
     # name pass and user for local usage only!
     def __init__(self):
-        load_dotenv()
-        self.conn_data = {'dbname': str(os.environ.get('DB_NAME')),
-                          'user': str(os.environ.get('DB_USER')),
-                          'password': str(os.environ.get('DB_PASS')),
-                          'host': str(os.environ.get('DB_IP')),
-                          'port': str(os.environ.get('DB_PORT')),
-                          }
+        
+        # self.conn_data = {'dbname': str(os.environ.get('DB_NAME')),
+        #                   'user': str(os.environ.get('DB_USER')),
+        #                   'password': str(os.environ.get('DB_PASS')),
+        #                   'host': str(os.environ.get('DB_IP')),
+        #                   'port': str(os.environ.get('DB_PORT')),
+        #                   }
         '''
         Строка ниже нужна для подключения к базе при запуске api локально на своей машине(ПК)
         '''
-        # self.conn_data = {'dbname': str(os.getenv('DB_NAME')),
-        #                   'user': str(os.getenv('DB_USER')),
-        #                   'password': str(os.getenv('DB_PASS')),
-        #                   'host': str(os.getenv('DB_IP')),
-        #                   'port': str(os.getenv('DB_PORT')),
-        #                   }
+        load_dotenv()
+        self.conn_data = {'dbname': str(os.getenv('DB_NAME')),
+                          'user': str(os.getenv('DB_USER')),
+                          'password': str(os.getenv('DB_PASS')),
+                          'host': str(os.getenv('DB_IP')),
+                          'port': str(os.getenv('DB_PORT')),
+                          }
     
     def get_module_file_location(self, series: str) -> str:
         if not series:
@@ -101,7 +102,7 @@ class DBRepository:
         column_name_string = ", ".join(list_of_column_names)
 
         if requered_filter:
-            full_filter = f"{requered_filter} AND {key_column_for_parameters} IN ({','.join(['?'] * len(list_requered_parameters))})"
+            full_filter = f"{requered_filter} AND {key_column_for_parameters} IN ({','.join(['%s'] * len(list_requered_parameters))})"
         else:
             full_filter = f"{key_column_for_parameters} IN ({','.join(['%s'] * len(list_requered_parameters))})"
 
