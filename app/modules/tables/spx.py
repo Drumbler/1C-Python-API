@@ -1,5 +1,5 @@
 from app.utils.custom.shelf_class import ShelfType
-from app.modules.material_collector import MaterialCollector
+from app.data.material_collector import MaterialCollector
 from typing import Dict
 from app.modules.neutral_base import border_calc, cabinet_calc, calculate_default_shelf_cost, calculate_table_shelf_cost, parse_type_material, pillar_calc, crossmember_calc, tabletop_calc
 from app.utils.custom.custom_funcs import split_to_float

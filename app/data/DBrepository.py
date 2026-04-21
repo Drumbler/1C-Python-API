@@ -48,7 +48,7 @@ class DBRepository:
                 results = cur.fetchone()[0]
         return results
 
-    def get_materials_for_products(self, series: str) -> Dict[int, List[str]]:
+    def get_materials_for_products(self, series: str) -> Dict[int, List]:
         '''
         Метод, выгружающий список материалов из базы данных для конкретного изделия.
         Материалы определяются по серии и записаны в базу данных.
@@ -71,11 +71,15 @@ class DBRepository:
         for row in results:
             material_id, abbreviation, name, misc, total_price, alternative_abbreviations = row
 
+            abbreviations_to_use = set()
+            if abbreviation:
+                abbreviations_to_use.add(abbreviation.strip())
             if alternative_abbreviations:
-                abbreviations_to_use = [
-                    abbr.strip() for abbr in alternative_abbreviations.split(",")]
-            else:
-                abbreviations_to_use = abbreviation
+                abbreviations_to_use.update(
+                    abbr.strip()
+                    for abbr in alternative_abbreviations.split(",")
+                    if abbr.strip()
+                )
 
             materials_dict[material_id] = [
                 abbreviations_to_use,

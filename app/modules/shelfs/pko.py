@@ -1,7 +1,7 @@
 from typing import Dict
 from app.utils.custom.gusset_class import GussetType
 from app.utils.custom.shelf_class import ShelfType
-from app.modules.material_collector import MaterialCollector
+from app.data.material_collector import MaterialCollector
 from app.modules.neutral_base import calculate_default_shelf_cost, gusset_calc, shelf_calc
 
 

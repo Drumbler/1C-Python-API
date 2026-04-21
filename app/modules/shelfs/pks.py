@@ -1,4 +1,4 @@
-from app.modules.material_collector import MaterialCollector
+from app.data.material_collector import MaterialCollector
 from app.modules.neutral_base import calculate_default_shelf_cost, gusset_calc
 from app.utils.custom.gusset_class import GussetType
 

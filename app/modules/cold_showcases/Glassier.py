@@ -12,7 +12,7 @@
 '''
 
 
-from app.modules.material_collector import MaterialCollector
+from app.data.material_collector import MaterialCollector
 from app.modules.cold_showcases.calculate_aggregate_compressor import determine_compressor_power_level
 
 def get_difficult_implementation(premium, unusual_impementation, additional_options):

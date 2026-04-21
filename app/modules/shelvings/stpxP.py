@@ -1,5 +1,5 @@
 from app.utils.custom.shelf_class import Shelf_type
-from app.modules.material_collector import MaterialCollector
+from app.data.material_collector import MaterialCollector
 from app.modules.neutral_base import calculate_difficulty_сoef, calculate_shelf_reinforcement, calculate_default_shelf_cost, pillar_calc
 
 

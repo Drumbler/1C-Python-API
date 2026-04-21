@@ -49,8 +49,9 @@ class MaterialCollector:
         '''
         abbr_ind = 0
         for _, lst in self.materials.items():
-            if len(lst) > abbr_ind and material_abbr == lst[abbr_ind]:
+            if len(lst) > abbr_ind and material_abbr in lst[abbr_ind]:
                 return lst[-1]
+        print(f'Материал {material_abbr} не найден в базе данных. Возможно он отсутствует в таблице "materials_for_products"')
         return 0
 
     def get_price_by_id(self, material_id: int) -> float:
@@ -61,7 +62,7 @@ class MaterialCollector:
         return self.materials.get(material_id)[-1]
 
 
-def get_mat_id_by_abr(materials_base, materials_abbr: List) -> int:
+def get_mat_id_by_abbr(materials_base, materials_abbr: List) -> int:
     abbr_ind = 0
     result = []
     for key, lst in materials_base.items():

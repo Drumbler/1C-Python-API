@@ -1,4 +1,4 @@
-from app.modules.material_collector import MaterialCollector
+from app.data.material_collector import MaterialCollector
 
 def vernut_blizaishee(list,zont_length):
     """
@@ -389,4 +389,4 @@ def calculate(parameters: str, series: str)-> float:
 
     full_cost = cost_of_production * ( koeficient_of_marjinality + difficult_of_product) + additional_cost
 
-    return round(full_cost,2), (koeficient_of_marjinality + difficult_of_product)
+    return round(full_cost, 2), (koeficient_of_marjinality + difficult_of_product)

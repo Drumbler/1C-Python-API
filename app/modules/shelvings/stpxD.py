@@ -1,7 +1,7 @@
 from typing import Dict
 
 
-from app.modules.material_collector import MaterialCollector
+from app.data.material_collector import MaterialCollector
 from app.modules.neutral_base import calculate_default_shelf_cost, calculate_difficulty_сoef, calculate_plank_racks_and_backwalls, calculate_shelf_reinforcement, pillar_calc
 def parse_params(parameters: str) -> dict:
     keys = [
