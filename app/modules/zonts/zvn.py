@@ -111,7 +111,7 @@ def min_cost_to_fill(zont_length, material):
 def get_difficult_implementation(material_base: MaterialCollector, 
                                  premium: bool, unusual_impementation: bool, 
                                  additional_options: bool, Series: ZVNSeries) -> float:
-    markup: float = 0.00
+    markup: float = 1.00
     if Series.is_island:
         markup += material_base.get_price_by_id(357) # островное исполнение @Drumbler
     # markup += material_base.get_price_by_id('') 
@@ -209,14 +209,15 @@ def cost_calculation(params: ZVNParams | ZPVNParams, series: str) -> float:
     )
     marginality_coef = get_marginality(MatCollector)
     production_coef = 1.10
-
-    total_cost = ((body_price + production_cost) * production_coef) * (1 + marginality_coef + difficulty_coef)
+    markup = marginality_coef + difficulty_coef
+    total_cost = ((body_price + production_cost) * production_coef) * (marginality_coef + difficulty_coef)
     total_cost += additional_cost
-    return total_cost
+    return total_cost, markup
     
 
 
 def calculate(parameters: str, series: str) -> float:
     normalized_series, _ = normalize_series(series)
     parsed_params = parse_parameters(parameters, series)
-    return cost_calculation(parsed_params, normalized_series)
+    total_cost, markup = cost_calculation(parsed_params, normalized_series)
+    return total_cost, markup

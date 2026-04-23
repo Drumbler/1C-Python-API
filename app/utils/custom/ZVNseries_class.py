@@ -20,7 +20,6 @@ class ZVNSeries(Enum):
     ZPVN0402 = ('ЗПВН-04/02', ZVNFormula.FORMULA_01_02, '02', True, True)
     ZPVN0403 = ('ЗПВН-04/03', ZVNFormula.FORMULA_03_05, '03', True, True)
     ZPVN0405 = ('ЗПВН-04/05', ZVNFormula.FORMULA_03_05, '05', True, True)
-       
 
     def __new__(cls,
                 code: str,
