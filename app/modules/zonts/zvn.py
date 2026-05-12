@@ -3,6 +3,7 @@ from dataclasses import fields
 from app.data.dto.zvn_dto import ZPVNParams, ZVNParams
 from app.data.material_collector import MaterialCollector
 
+from app.modules.zonts.filter_calculation import min_cost_to_fill as _min_cost_to_fill
 from app.modules.zvn_handler import calculate_additional_cost, calculate_production_cost, get_marginality, handle_body_calculation
 from app.utils.custom.ZVNseries_class import ZVNSeries
 
@@ -31,6 +32,9 @@ STANDARD_RAL_VALUES = frozenset((
     'ral1013',
     'ral9016',
 ))
+
+# Сохраняем старое имя helper-функции в модуле, но используем общую реализацию.
+min_cost_to_fill = _min_cost_to_fill
 
 
 def is_unusual(Series: ZVNSeries, params: ZVNParams | ZPVNParams) -> bool:
@@ -79,34 +83,6 @@ def has_additional(Series: ZVNSeries, params: ZVNParams | ZPVNParams) -> bool:
     ral_value = params.ral.strip().casefold()
     return bool(ral_value and ral_value not in STANDARD_RAL_VALUES)
 
-
-def vernut_blizaishee(list,zont_length):
-    """
-    Возвращает ближайшую доступную стоимость для указанной ширины зонта.
-    """
-    return list[int(zont_length)] if list[int(zont_length)] != float('inf') else vernut_blizaishee(list,zont_length-1)
-
-def min_cost_to_fill(zont_length, material):
-    """
-    Рассчитывает минимальную стоимость заполнения жироуловителями.
-    """
-    zont_length *= 10
-    fliter_size = [2,3,4,5,6]  # Их размеры 200мм,300мм и т.д.
-    JU200 = ((0.059*0.57) * 5 + (0.19*0.053) * 4 + (0.58*0.053) * 4 + (0.06*0.08) * 2) * material + 45 # Стоимость трудозатрат 45 (было 100) рублей (по хорошему отдельная переменная на вход)
-    JU300 = ((0.059*0.57) * 7 + (0.29*0.053) * 4 + (0.58*0.053) * 4 + (0.06*0.08) * 2) * material + 45
-    JU400 = ((0.059*0.57) * 9 + (0.39*0.053) * 4 + (0.58*0.053) * 4 + (0.06*0.08) * 2) * material + 45
-    JU500 = ((0.059*0.57) * 11 + (0.49*0.053) * 4 + (0.58*0.053) * 4 + (0.06*0.08) * 2) * material + 45
-    JU600 = ((0.059*0.57) * 15 + (0.59*0.053) * 4 + (0.58*0.053) * 4 + (0.06*0.08) * 2) * material + 45
-    filter_costs = [JU200,JU300,JU400,JU500,JU600] # Их стоимости
-
-    #costcontainer хранит значения минимальных стоимостей для длин
-    costcontainer = [float('inf')] * (int(zont_length) + 1)
-    costcontainer[0] = 0  # при длине 0 и стоимость 0
-    for length in range(1, int(zont_length) + 1):
-        for size, cost in zip(fliter_size, filter_costs):
-            if length >= size:
-                costcontainer[length] = min(costcontainer[length], costcontainer[length - size] + cost)
-    return vernut_blizaishee(costcontainer,zont_length)
 
 def get_difficult_implementation(material_base: MaterialCollector, 
                                  premium: bool, unusual_impementation: bool, 
@@ -210,14 +186,15 @@ def cost_calculation(params: ZVNParams | ZPVNParams, series: str) -> float:
     marginality_coef = get_marginality(MatCollector)
     production_coef = 1.10
     markup = marginality_coef + difficulty_coef
+    
+    print(body_price + production_cost + additional_cost, 'total before markup')
     total_cost = ((body_price + production_cost) * production_coef) * (marginality_coef + difficulty_coef)
     total_cost += additional_cost
     return total_cost, markup
-    
 
 
 def calculate(parameters: str, series: str) -> float:
     normalized_series, _ = normalize_series(series)
     parsed_params = parse_parameters(parameters, series)
     total_cost, markup = cost_calculation(parsed_params, normalized_series)
-    return total_cost, markup
+    return round(total_cost, 2), markup

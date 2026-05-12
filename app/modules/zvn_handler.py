@@ -3,6 +3,7 @@ from typing import Callable
 
 from app.data.dto.zvn_dto import ZPVNParams, ZVNParams
 from app.data.material_collector import MaterialCollector
+from app.modules.zonts.filter_calculation import calculate_filters_cost
 from app.utils.custom.ZVNformula_class import ZVNFormula
 from app.utils.custom.ZVNseries_class import ZVNSeries
 
@@ -41,9 +42,18 @@ def calculate_01_02(
         #              MaterialBase.get_price_by_abbr(params.backplate_material)
         bath = params.width * 0.3 * \
                MaterialBase.get_price_by_abbr(params.body_material)
+    branch_pipe = 0.8 * 0.075 * MaterialBase.get_price_by_abbr(params.backplate_material)
+    faucet = (1 if params.width <= 1.100 else 2) * MaterialBase.get_price_by_id(124)
     
     total_cost = 2 * side_panel + top_panel + \
-                 back_panel + bath
+                 back_panel + bath + branch_pipe + faucet
+    print(side_panel, 'side panel')
+    print(top_panel, 'top panel')
+    print(back_panel, 'back panel')
+    print(bath, 'bath')
+    print(branch_pipe, 'branch_pipe')
+    print(total_cost, 'total body')
+    print(faucet, 'faucet')
     return total_cost
 
 
@@ -78,10 +88,18 @@ def calculate_03_05(
         #             (params.height + 0.015) * \
         #             (MaterialBase.get_price_by_abbr(params.backplate_material))
         bath = params.width * \
-               0.300 * \
-              (MaterialBase.get_price_by_abbr(params.body_material))
-        
-    total_cost = 2 * side_panel + top_panel + bath + (back_panel if Series.is_island else 0)
+              0.300 * \
+             (MaterialBase.get_price_by_abbr(params.body_material))
+    branch_pipe = 0.8 * 0.075 * MaterialBase.get_price_by_abbr(params.backplate_material)
+    faucet = (1 if params.width <= 1.100 else 2) * MaterialBase.get_price_by_id(124)
+    total_cost = 2 * side_panel + top_panel + bath + (back_panel if not Series.is_island else 0) + branch_pipe + faucet
+    print(side_panel, 'side panel')
+    print(top_panel, 'top panel')
+    print(back_panel, 'back panel')
+    print(bath, 'bath')
+    print(branch_pipe, 'branch_pipe')
+    print(faucet, 'faucet')
+    print(total_cost, 'total body')
         
     return total_cost
 
@@ -115,8 +133,8 @@ def calculate_production_cost(
         params: ZVNParams | ZPVNParams) -> float:
     total_cost = 0
     
-    branch_pipe = 0.8 * 0.075 * MaterialBase.get_price_by_abbr(params.backplate_material)
-    faucet = (1 if params.width <= 1.100 else 2) * MaterialBase.get_price_by_id(124)
+    
+    
     # подвес
     bracket = (0.17 * 0.08) * MaterialBase.get_price_by_id(1) # 1 - id нержавейки aisi 430 0.8мм
     # Рассекатели (ставятся по 1 на каждый 400мм)
@@ -134,6 +152,7 @@ def calculate_production_cost(
     dividers *= (params.depth + 0.39) // 0.4
     components = MaterialBase.calculate_misc()
     work_price = MaterialBase.get_price_by_abbr('работа.' + Series._value_)
+    filters_cost = calculate_filters_cost(Series, MaterialBase, params)
 
     ind_features = 0
 
@@ -152,7 +171,15 @@ def calculate_production_cost(
         else:
             ind_features += params.width * 0.17 * MaterialBase.get_price_by_abbr(params.body_material)
                 
-    total_cost = branch_pipe + faucet + bracket + dividers + components + work_price + ind_features
+    total_cost = (4 * bracket) + dividers + components + work_price + ind_features + filters_cost
+    print(bracket, 'bracket')
+    print(dividers, 'dividers')
+    print(components, 'components')
+    print(work_price, 'work price')
+    print(ind_features, 'ind features')
+    print(filters_cost, 'filter cost')
+
+    print(total_cost)
     return total_cost
 
 
@@ -187,11 +214,13 @@ def calculate_additional_cost(
     cut_out_cost += MaterialBase.get_price_by_abbr(params.main_cut_out)
     cut_out_cost += MaterialBase.get_price_by_abbr(params.add_cut_out)
 
-    filters_cost = MaterialBase.get_price_by_abbr(params.filters)
-
     fan_cost = MaterialBase.get_price_by_abbr(params.fan)
 
-    total_cost = light_cost + cut_out_cost + filters_cost + fan_cost
+    total_cost = light_cost + cut_out_cost + fan_cost
+    print(light_cost, 'light cost')
+    print(cut_out_cost, ' cut out cost')
+    print(fan_cost, 'fan cost')
+    print(total_cost)
     return total_cost
 
 

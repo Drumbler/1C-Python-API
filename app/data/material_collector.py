@@ -46,6 +46,7 @@ class MaterialCollector:
         '''
         Метод для получения цены материала по аббревиатуре из self.materials, до этого в self.materials 
         загружается выгрузка базы материалов.
+        врез.выт, врез.доп.выт, врез.прит, врез.доп.прит
         '''
         abbr_ind = 0
         for _, lst in self.materials.items():

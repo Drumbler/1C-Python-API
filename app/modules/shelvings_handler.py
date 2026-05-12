@@ -129,26 +129,3 @@ def calculate_difficulty_coef(params: ProductionShelvingsParams) -> float:
             coef += weight
 
     return 1 + coef
-
-
-def calculate_production_shelving_cost(
-    series: ShelvingSeries,
-    MaterialBase: MaterialCollector,
-    params: ProductionShelvingsParams,
-) -> float:
-    return (
-        calculate_pillars_cost(series, MaterialBase, params)
-        + calculate_shelfs_cost(MaterialBase, params)
-        + MaterialBase.calculate_misc()
-        + calculate_options_cost(MaterialBase, params)
-    )
-
-
-def calculate_total_cost(
-    series: ShelvingSeries,
-    MaterialBase: MaterialCollector,
-    params: ProductionShelvingsParams,
-) -> tuple[float, float]:
-    difficulty_coef = calculate_difficulty_coef(params)
-    total_cost = calculate_production_shelving_cost(series, MaterialBase, params)
-    return total_cost * difficulty_coef, difficulty_coef
