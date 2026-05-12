@@ -16,4 +16,6 @@ app/modules/ideas.md
 app/modules/sql_query.md
 update_api.bat
 update.ps1
+setup_auth.bat
+setup_auth.ps1
 old_db
