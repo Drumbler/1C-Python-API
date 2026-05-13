@@ -197,4 +197,5 @@ def calculate(parameters: str, series: str) -> float:
     normalized_series, _ = normalize_series(series)
     parsed_params = parse_parameters(parameters, series)
     total_cost, markup = cost_calculation(parsed_params, normalized_series)
-    return round(total_cost, 2), markup
+    print(markup, 'Наценка вся')
+    return round(total_cost, 2)

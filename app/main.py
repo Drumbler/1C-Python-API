@@ -42,8 +42,9 @@ async def calculate_cost(request: CalculationRequest):
             "request": request.model_dump(),
             "response": cost
         })
+        
 
-        return {'cost': cost, 'markup': markup}
+        return {'cost': cost}
 
     except ValueError as ve:
         logger.error(f"Unknown Module. ValueError: {ve}")
