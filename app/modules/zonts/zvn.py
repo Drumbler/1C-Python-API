@@ -138,6 +138,15 @@ def normalize_series(series: str) -> tuple[str, bool]:
 def parse_parameters(parameters: str, series: str) -> ZVNParams | ZPVNParams:
     normalized_series, is_premium = normalize_series(series)
     raw = [x.strip() for x in parameters.split('/')]
+
+    while raw and not raw[0]:
+        raw.pop(0)
+    while raw and not raw[-1]:
+        raw.pop()
+
+    if not raw:
+        raise ValueError("Parameters are empty")
+
     is_cube = raw[0] == 'CUBE'
     values = raw[1:] if is_cube else raw
 
@@ -145,7 +154,13 @@ def parse_parameters(parameters: str, series: str) -> ZVNParams | ZPVNParams:
         ((dto_cls, keys) for prefix, (dto_cls, keys) in SCHEMAS.items() if normalized_series.startswith(prefix)),
         None,
     )
+    if schema is None:
+        raise ValueError(f"Unsupported zont series: {series}")
+
     dto_cls, keys = schema
+
+    if len(values) == len(keys) - 1 and keys[-1] == 'weld':
+        values.append('')
 
     if len(values) != len(keys):
         raise ValueError(f"Expected {len(keys)} parameters, got {len(values)}")

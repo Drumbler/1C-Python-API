@@ -34,7 +34,7 @@ async def calculate_cost(request: CalculationRequest):
         raise HTTPException(status_code=400, detail="Parameters are required")
 
     try:
-        cost, markup = await calc_controller.calculation(request.series, request.parameters)
+        cost = await calc_controller.calculation(request.series, request.parameters)
         
 
         # Логируем успешный запрос в файл calculation_requests.log

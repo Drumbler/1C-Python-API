@@ -15,7 +15,7 @@ class CalculationController:
                     status_code=400, detail=f"module {series} does not support calculation (Модуль не поддерживается)")
             print(f'Модуль {series} успешно загружен!')
             print('Рассчитывается стоимость...')
-            cost, markup = module.calculate(parameters, series)
+            cost = module.calculate(parameters, series)
             if cost is None:
                 raise HTTPException(
                     status_code=400, detail=f"module {series} returned None (Модуль вернул None)")
