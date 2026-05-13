@@ -19,7 +19,7 @@ class CalculationController:
             if cost is None:
                 raise HTTPException(
                     status_code=400, detail=f"module {series} returned None (Модуль вернул None)")
-            return cost, markup
+            return cost
         except Exception as e:
             raise HTTPException(status_code=400, detail=str(e))
         except ImportError:
