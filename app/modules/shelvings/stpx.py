@@ -95,4 +95,4 @@ def calculate(parameters: str, series: str) -> float:
     parsed_params = parse_parameters(parameters)
     cost, markup = cost_calculation(parsed_params, series)
 
-    return round(cost, 2), markup
+    return round(cost, 2)
