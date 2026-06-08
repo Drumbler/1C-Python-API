@@ -114,6 +114,7 @@ class DBRepository:
                           }
         '''
         Строка ниже нужна для подключения к базе при запуске api локально на своей машине(ПК)
+        НЕ УДАЛЯТЬ!!!
         '''
         # load_dotenv()
         # self.conn_data = {'dbname': str(os.getenv('DB_NAME')),
