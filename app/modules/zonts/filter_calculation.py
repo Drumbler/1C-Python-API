@@ -13,40 +13,74 @@ STANDARD_FILTER_ABBR = 'ст.фильтры'
 PREMIUM_FILTER_ABBR = 'премиум.жир'
 SPARK_ARRESTER_ABBR = 'искрогас'
 NO_FILTER_MARKERS = ('нет', 'без', '-')
-FILTER_SIZES = (2, 3, 4, 5, 6)
+PREFERRED_FILTER_SIZES = (3, 4, 5)
+FILTER_WORK_COST = 45
+FILTER_LAMELLA_COUNTS = {
+    2: 5,
+    3: 7,
+    4: 9,
+    5: 11,
+    6: 15,
+}
+
+def get_filter_unit_cost(filter_size: int, material: float) -> float:
+    first_angle_length = (filter_size / 10) - 0.01
+    return (
+        ((0.059 * 0.57) * FILTER_LAMELLA_COUNTS[filter_size]) +
+        ((first_angle_length * 0.053) * 4) +
+        ((0.58 * 0.053) * 4) +
+        ((0.06 * 0.08) * 2)
+    ) * material + FILTER_WORK_COST
 
 
-def vernut_blizaishee(costs: list[float], zont_length: int) -> float:
-    while zont_length > 0 and costs[zont_length] == float('inf'):
-        zont_length -= 1
-    # print(costs[zont_length])
-    # print(zont_length)
-    return costs[zont_length]
+def get_filter_layout_rank(layout: tuple[int, ...]) -> tuple[int, int, tuple[int, ...]]:
+    if not layout:
+        return 0, 0, ()
+    return len(layout), max(layout) - min(layout), tuple(-size for size in reversed(layout))
+
+
+def select_filter_layout(zont_length_steps: int) -> tuple[int, ...]:
+    layouts: list[tuple[int, ...] | None] = [None] * (zont_length_steps + 1)
+    layouts[0] = ()
+
+    for length in range(1, zont_length_steps + 1):
+        best_layout: tuple[int, ...] | None = None
+        for size in PREFERRED_FILTER_SIZES:
+            if length < size:
+                continue
+
+            previous_layout = layouts[length - size]
+            if previous_layout is None:
+                continue
+
+            candidate_layout = tuple(sorted(previous_layout + (size,)))
+            # При равном количестве деталей предпочитаем более ровную раскладку, как в Excel.
+            if (
+                best_layout is None or
+                get_filter_layout_rank(candidate_layout) < get_filter_layout_rank(best_layout)
+            ):
+                best_layout = candidate_layout
+
+        layouts[length] = best_layout
+
+    selected_layout = layouts[zont_length_steps]
+    if selected_layout is None:
+        raise ValueError(f'No filter layout found for length step {zont_length_steps}')
+    return selected_layout
+
+
+def get_filter_layout_cost(layout: tuple[int, ...], material: float) -> float:
+    return sum(get_filter_unit_cost(filter_size, material) for filter_size in layout)
 
 
 def min_cost_to_fill(zont_length: float, material: float) -> float:
     """
-    Рассчитывает минимальную стоимость заполнения жироуловителями.
-    Локально округляет ширину до ближайших 100 мм вверх, как в legacy-расчете.
+    Сохраняем legacy-имя функции, но раскладку подбираем по шаблонам из Excel.
     """
     zont_length_mm = int(round(zont_length * 1000))
     zont_length_steps = (zont_length_mm + 99) // 100
-
-    filter_costs = [
-        ((0.059 * 0.57) * 5 + (0.19 * 0.053) * 4 + (0.58 * 0.053) * 4 + (0.06 * 0.08) * 2) * material + 45,
-        ((0.059 * 0.57) * 7 + (0.29 * 0.053) * 4 + (0.58 * 0.053) * 4 + (0.06 * 0.08) * 2) * material + 45,
-        ((0.059 * 0.57) * 9 + (0.39 * 0.053) * 4 + (0.58 * 0.053) * 4 + (0.06 * 0.08) * 2) * material + 45,
-        ((0.059 * 0.57) * 11 + (0.49 * 0.053) * 4 + (0.58 * 0.053) * 4 + (0.06 * 0.08) * 2) * material + 45,
-        ((0.059 * 0.57) * 15 + (0.59 * 0.053) * 4 + (0.58 * 0.053) * 4 + (0.06 * 0.08) * 2) * material + 45,
-    ]
-
-    costcontainer = [float('inf')] * (zont_length_steps + 1)
-    costcontainer[0] = 0
-    for length in range(1, zont_length_steps + 1):
-        for size, cost in zip(FILTER_SIZES, filter_costs):
-            if length >= size:
-                costcontainer[length] = min(costcontainer[length], costcontainer[length - size] + cost)
-    return vernut_blizaishee(costcontainer, zont_length_steps)
+    selected_layout = select_filter_layout(zont_length_steps)
+    return get_filter_layout_cost(selected_layout, material)
 
 
 def calculate_filters_cost(

@@ -10,13 +10,11 @@ from app.utils.custom.ZVNseries_class import ZVNSeries
 
 ADDITIONAL_PARAM_FIELDS = frozenset((
     'filters',
-    'main_cut_out',
     'add_cut_out',
     'lights',
     'fan',
 ))
 SUPPLY_ADDITIONAL_PARAM_FIELDS = frozenset((
-    'main_cut_in',
     'add_cut_in',
 ))
 NO_ADDITIONAL_MARKERS = ('нет', 'без', '-')
@@ -206,11 +204,17 @@ def cost_calculation(params: ZVNParams | ZPVNParams, series: str) -> float:
     total_cost = ((body_price + production_cost) * production_coef) * (marginality_coef + difficulty_coef)
     total_cost += additional_cost
     return total_cost, markup
+    
 
 
-def calculate(parameters: str, series: str) -> float:
+def calculate_details(parameters: str, series: str) -> tuple[float, float]:
     normalized_series, _ = normalize_series(series)
     parsed_params = parse_parameters(parameters, series)
     total_cost, markup = cost_calculation(parsed_params, normalized_series)
     print(markup, 'Наценка вся')
-    return round(total_cost, 2)
+    return round(total_cost, 2), markup
+
+
+def calculate(parameters: str, series: str) -> float:
+    total_cost, _ = calculate_details(parameters, series)
+    return total_cost
