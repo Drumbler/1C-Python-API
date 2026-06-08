@@ -1,15 +1,103 @@
-from typing import Dict, List
+import os
+import re
+from pathlib import Path
+from typing import Dict, Iterable, List
+
 import psycopg2
 from logging import getLogger
 from fastapi import HTTPException, UploadFile
 import pandas as pd
 from dotenv import load_dotenv
+from openpyxl import load_workbook
 
 from app.controllers.module_loader import load_all_modules
-import os
 
 
 logger = getLogger(__name__)
+
+CALCULATED_PRODUCTS_TABLE = 'calculated_products'
+CALCULATED_PRODUCTS_ZVN_TEMPLATE = (
+    'н.ст.08',
+    'задн.ст.ОЦИНК',
+    'не.краш',
+    'врез.выт',
+    '-',
+    'без.подсв',
+    'вент.нет',
+    'сборн',
+)
+CALCULATED_PRODUCTS_ZPVN_TEMPLATE = (
+    'н.ст.08',
+    'задн.ст.ОЦИНК',
+    'не.краш',
+    'врез.выт',
+    '-',
+    'врез.прит',
+    '-',
+    'без.подсв',
+    'вент.нет',
+    'сборн',
+)
+STANDARD_FILTER_NAME = 'ст.фильтры'
+PREMIUM_FILTER_NAME = 'премиум.жир'
+PREMIUM_SERIES_MARKER = 'ПРЕМИУМ'
+CHARACTERISTIC_PATTERN = re.compile(r'^\s*(\d+)\s*[xх*]\s*(\d+)\s*[xх*]\s*(\d+)\s*$')
+
+
+def normalize_calculated_product_series(series: str) -> str:
+    return ' '.join(series.strip().split()).upper()
+
+
+def normalize_calculated_product_parameters(parameters: str) -> str:
+    normalized_parts = [part.strip() for part in parameters.split('/')]
+
+    while normalized_parts and not normalized_parts[0]:
+        normalized_parts.pop(0)
+    while normalized_parts and not normalized_parts[-1]:
+        normalized_parts.pop()
+
+    return '/'.join(normalized_parts)
+
+
+def build_calculated_product_parameters(series: str, characteristic: str) -> str:
+    normalized_series = normalize_calculated_product_series(series)
+    match = CHARACTERISTIC_PATTERN.match(characteristic)
+    if match is None:
+        raise ValueError(f'Unsupported characteristic format: {characteristic!r}')
+
+    width, depth, height = match.groups()
+    filter_name = (
+        PREMIUM_FILTER_NAME
+        if PREMIUM_SERIES_MARKER in normalized_series
+        else STANDARD_FILTER_NAME
+    )
+
+    if normalized_series.startswith('ЗПВН'):
+        parts = [
+            width,
+            depth,
+            height,
+            CALCULATED_PRODUCTS_ZPVN_TEMPLATE[0],
+            CALCULATED_PRODUCTS_ZPVN_TEMPLATE[1],
+            CALCULATED_PRODUCTS_ZPVN_TEMPLATE[2],
+            filter_name,
+            *CALCULATED_PRODUCTS_ZPVN_TEMPLATE[3:],
+        ]
+    elif normalized_series.startswith('ЗВН'):
+        parts = [
+            width,
+            depth,
+            height,
+            CALCULATED_PRODUCTS_ZVN_TEMPLATE[0],
+            CALCULATED_PRODUCTS_ZVN_TEMPLATE[1],
+            CALCULATED_PRODUCTS_ZVN_TEMPLATE[2],
+            filter_name,
+            *CALCULATED_PRODUCTS_ZVN_TEMPLATE[3:],
+        ]
+    else:
+        raise ValueError(f'Unsupported zont series: {series!r}')
+
+    return '/'.join(parts)
 
 
 
@@ -18,22 +106,112 @@ class DBRepository:
     # name pass and user for local usage only!
     def __init__(self):
         
-        # self.conn_data = {'dbname': str(os.environ.get('DB_NAME')),
-        #                   'user': str(os.environ.get('DB_USER')),
-        #                   'password': str(os.environ.get('DB_PASS')),
-        #                   'host': str(os.environ.get('DB_IP')),
-        #                   'port': str(os.environ.get('DB_PORT')),
-        #                   }
+        self.conn_data = {'dbname': str(os.environ.get('DB_NAME')),
+                          'user': str(os.environ.get('DB_USER')),
+                          'password': str(os.environ.get('DB_PASS')),
+                          'host': str(os.environ.get('DB_IP')),
+                          'port': str(os.environ.get('DB_PORT')),
+                          }
         '''
         Строка ниже нужна для подключения к базе при запуске api локально на своей машине(ПК)
         '''
-        load_dotenv()
-        self.conn_data = {'dbname': str(os.getenv('DB_NAME')),
-                          'user': str(os.getenv('DB_USER')),
-                          'password': str(os.getenv('DB_PASS')),
-                          'host': str(os.getenv('DB_IP')),
-                          'port': str(os.getenv('DB_PORT')),
-                          }
+        # load_dotenv()
+        # self.conn_data = {'dbname': str(os.getenv('DB_NAME')),
+        #                   'user': str(os.getenv('DB_USER')),
+        #                   'password': str(os.getenv('DB_PASS')),
+        #                   'host': str(os.getenv('DB_IP')),
+        #                   'port': str(os.getenv('DB_PORT')),
+        #                   }
+
+    def ensure_calculated_products_table(self) -> None:
+        with psycopg2.connect(**self.conn_data) as conn:
+            with conn.cursor() as cur:
+                cur.execute(f"""
+                    CREATE TABLE IF NOT EXISTS {CALCULATED_PRODUCTS_TABLE} (
+                        series TEXT NOT NULL,
+                        parameters TEXT NOT NULL,
+                        cost DOUBLE PRECISION NOT NULL,
+                        CONSTRAINT calculated_products_series_parameters_key
+                            UNIQUE (series, parameters)
+                    )
+                """)
+
+    def get_calculated_product_cost(self, series: str, parameters: str) -> float | None:
+        normalized_series = normalize_calculated_product_series(series)
+        normalized_parameters = normalize_calculated_product_parameters(parameters)
+
+        try:
+            with psycopg2.connect(**self.conn_data) as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        f"""
+                            SELECT cost
+                            FROM {CALCULATED_PRODUCTS_TABLE}
+                            WHERE series = %s AND parameters = %s
+                            LIMIT 1
+                        """,
+                        (normalized_series, normalized_parameters),
+                    )
+                    row = cur.fetchone()
+        except psycopg2.Error as exc:
+            if exc.pgcode == '42P01':
+                return None
+            logger.warning(f"Database error: {exc}")
+            raise RuntimeError(f"Database error: {exc}") from exc
+
+        if row is None:
+            return None
+
+        return float(row[0])
+
+    def upsert_calculated_products(self, rows: Iterable[tuple[str, str, float]]) -> int:
+        normalized_rows = [
+            (
+                normalize_calculated_product_series(series),
+                normalize_calculated_product_parameters(parameters),
+                float(cost),
+            )
+            for series, parameters, cost in rows
+        ]
+        if not normalized_rows:
+            return 0
+
+        self.ensure_calculated_products_table()
+
+        with psycopg2.connect(**self.conn_data) as conn:
+            with conn.cursor() as cur:
+                cur.executemany(
+                    f"""
+                        INSERT INTO {CALCULATED_PRODUCTS_TABLE} (series, parameters, cost)
+                        VALUES (%s, %s, %s)
+                        ON CONFLICT (series, parameters)
+                        DO UPDATE SET cost = EXCLUDED.cost
+                    """,
+                    normalized_rows,
+                )
+
+        return len(normalized_rows)
+
+    def load_calculated_products_from_xlsx(self, workbook_path: str | os.PathLike[str]) -> int:
+        workbook = load_workbook(Path(workbook_path), read_only=True, data_only=True)
+        worksheet = workbook.active
+
+        rows_to_upsert: list[tuple[str, str, float]] = []
+        for series, characteristic, cost in worksheet.iter_rows(
+                min_row=2,
+                values_only=True):
+            if not isinstance(series, str):
+                continue
+            if not isinstance(characteristic, str):
+                continue
+            if not isinstance(cost, (int, float)):
+                continue
+
+            parameters = build_calculated_product_parameters(series, characteristic)
+            rows_to_upsert.append((series, parameters, float(cost)))
+
+        workbook.close()
+        return self.upsert_calculated_products(rows_to_upsert)
     
     def get_module_file_location(self, series: str) -> str:
         if not series:

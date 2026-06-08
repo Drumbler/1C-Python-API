@@ -34,6 +34,17 @@ async def calculate_cost(request: CalculationRequest):
         raise HTTPException(status_code=400, detail="Parameters are required")
 
     try:
+        calculated_cost = DBrepo.get_calculated_product_cost(
+            request.series,
+            request.parameters,
+        )
+        if calculated_cost is not None:
+            logger.info("Successful lookup in calculated_products", extra={
+                "request": request.model_dump(),
+                "response": calculated_cost,
+            })
+            return {'cost': calculated_cost}
+
         cost = await calc_controller.calculation(request.series, request.parameters)
         
 
