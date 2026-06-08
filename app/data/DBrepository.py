@@ -122,7 +122,6 @@ class DBRepository:
         #                   'host': str(os.getenv('DB_IP')),
         #                   'port': str(os.getenv('DB_PORT')),
         #                   }
-
     def ensure_calculated_products_table(self) -> None:
         with psycopg2.connect(**self.conn_data) as conn:
             with conn.cursor() as cur:

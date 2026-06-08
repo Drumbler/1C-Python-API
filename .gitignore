@@ -1,12 +1,16 @@
 *.log
 *.tmp
 *.pyc
+__pycache__/
 *.coverage
 .env
 /Env/
 /tests/
 pytest.ini
 docker-compose.yaml
+calculated_products_export.csv
+run_test_correct_request.sh
+Товары из прайса в базу.xlsx
 No_such_table_in_db.xlsx
 Not_added_to_DB.xlsx
 Not_updated_in_DB.xlsx
