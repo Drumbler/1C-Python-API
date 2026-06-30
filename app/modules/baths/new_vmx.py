@@ -6,9 +6,9 @@ from app.utils.custom.shelf_class import ShelfType
 
 
 MATERIAL_FOR_PLATE = 'н.ст.08'
-MATERIAL_FOR_BATH = '439.н.ст.10'
-MATERIAL_FOR_APRON = 'оц.ст.07'
-MATERIAL_FOR_BRACING = 'оц.ст.07'
+MATERIAL_FOR_BATH = '430.н.ст.10'
+MATERIAL_FOR_APRON = 'оц.ст.08'
+MATERIAL_FOR_BRACING = 'оц.ст.08'
 STANDARD_BATH_COLORS = frozenset((
     'RAL9005',
     'RAL7024',
@@ -81,6 +81,16 @@ def _extract_baths_count(series: str) -> int:
     if match is None:
         raise ValueError(f"Unsupported bath series format: {series}")
     return int(match.group(1))
+
+
+def _normalize_series_for_material_lookup(series: str) -> str:
+    normalized_series = series.strip().upper().replace('К', 'М')
+    match = re.fullmatch(r'(ВМ[А-Я])([СЦ]+)-(\d)', normalized_series)
+    if match is None:
+        return normalized_series
+
+    prefix, suffix, number = match.groups()
+    return f'{prefix}{suffix.lower()}-{number}'
 
 
 def _normalize_color(value: str) -> str | None:
@@ -419,7 +429,7 @@ def cost_calculation(params: VMXParams, series: str) -> tuple[float, float]:
         define_material_reinforce_angle(params.series_letter)
     )
     material_bracing = material_db.get_price_by_abbr(MATERIAL_FOR_BRACING)
-    series_for_lookup = series.strip().upper().replace('К', 'М')
+    series_for_lookup = _normalize_series_for_material_lookup(series)
     components += material_db.get_price_by_abbr(f'работа.{series_for_lookup}')
     marginality = 1 + material_db.get_price_by_abbr(f'наценка.{series_for_lookup}')
     components += _calculate_drain_components(material_db, params)

@@ -8,6 +8,5 @@ class CalculationRequest(BaseModel):
 
 
 class CalculationResponse(BaseModel):
-    cost: float = Field(..., description="Рассчитанная себестоимость")
+    cost: int | float = Field(..., description="Рассчитанная себестоимость")
     # markup: float = Field(..., description="Рассчитанная наценка")
-

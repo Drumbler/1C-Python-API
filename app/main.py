@@ -57,6 +57,8 @@ async def calculate_cost(request: CalculationRequest):
 
         return {'cost': cost}
 
+    except HTTPException:
+        raise
     except ValueError as ve:
         logger.error(f"Unknown Module. ValueError: {ve}")
         raise HTTPException(status_code=404, detail=str(ve))

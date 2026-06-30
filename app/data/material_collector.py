@@ -60,7 +60,15 @@ class MaterialCollector:
         Метод для получения цены материала по id из self.materials, до этого в self.materials
         загружается выгрузка базы материалов.
         '''
-        return self.materials.get(material_id)[-1]
+        material = self.materials.get(material_id)
+        if material is None:
+            raise KeyError(
+                f"Material id {material_id} not found for series {self.series!r}"
+            )
+        return material[-1]
+
+    def get(self, material_id: int, default=None):
+        return self.materials.get(material_id, default)
 
 
 def get_mat_id_by_abbr(materials_base, materials_abbr: List) -> int:

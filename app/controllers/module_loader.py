@@ -67,6 +67,9 @@ def load_module(series: str):
         module = importlib.import_module(
             f"app.modules.{file_loc}")
         return module
+    except LookupError as e:
+        logger.warning(f"Module not found (Модуль не найден): {e}")
+        raise ImportError(f"module {series} not found (Модуль не найден)") from e
     except ModuleNotFoundError as e:
         logger.warning(f"Module not found (Модуль не найден): {e}")
         raise ImportError(f"module {series} not found (Модуль не найден)")

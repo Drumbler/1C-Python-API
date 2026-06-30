@@ -1,5 +1,6 @@
 import os
 import re
+from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 from typing import Dict, Iterable, List
 
@@ -42,6 +43,10 @@ STANDARD_FILTER_NAME = 'ст.фильтры'
 PREMIUM_FILTER_NAME = 'премиум.жир'
 PREMIUM_SERIES_MARKER = 'ПРЕМИУМ'
 CHARACTERISTIC_PATTERN = re.compile(r'^\s*(\d+)\s*[xх*]\s*(\d+)\s*[xх*]\s*(\d+)\s*$')
+
+
+def round_calculated_product_cost(cost: float | int) -> int:
+    return int(Decimal(str(cost)).quantize(Decimal('1'), rounding=ROUND_HALF_UP))
 
 
 def normalize_calculated_product_series(series: str) -> str:
@@ -105,24 +110,23 @@ class DBRepository:
 
     # name pass and user for local usage only!
     def __init__(self):
-        
-        self.conn_data = {'dbname': str(os.environ.get('DB_NAME')),
-                          'user': str(os.environ.get('DB_USER')),
-                          'password': str(os.environ.get('DB_PASS')),
-                          'host': str(os.environ.get('DB_IP')),
-                          'port': str(os.environ.get('DB_PORT')),
-                          }
+        # self.conn_data = {'dbname': str(os.environ.get('DB_NAME')),
+        #                   'user': str(os.environ.get('DB_USER')),
+        #                   'password': str(os.environ.get('DB_PASS')),
+        #                   'host': str(os.environ.get('DB_IP')),
+        #                   'port': str(os.environ.get('DB_PORT')),
+        #                   }
         '''
         Строка ниже нужна для подключения к базе при запуске api локально на своей машине(ПК)
         НЕ УДАЛЯТЬ!!!
         '''
-        # load_dotenv()
-        # self.conn_data = {'dbname': str(os.getenv('DB_NAME')),
-        #                   'user': str(os.getenv('DB_USER')),
-        #                   'password': str(os.getenv('DB_PASS')),
-        #                   'host': str(os.getenv('DB_IP')),
-        #                   'port': str(os.getenv('DB_PORT')),
-        #                   }
+        load_dotenv()
+        self.conn_data = {'dbname': str(os.getenv('DB_NAME')),
+                          'user': str(os.getenv('DB_USER')),
+                          'password': str(os.getenv('DB_PASS')),
+                          'host': str(os.getenv('DB_IP')),
+                          'port': str(os.getenv('DB_PORT')),
+                          } 
     def ensure_calculated_products_table(self) -> None:
         with psycopg2.connect(**self.conn_data) as conn:
             with conn.cursor() as cur:
@@ -136,7 +140,7 @@ class DBRepository:
                     )
                 """)
 
-    def get_calculated_product_cost(self, series: str, parameters: str) -> float | None:
+    def get_calculated_product_cost(self, series: str, parameters: str) -> int | None:
         normalized_series = normalize_calculated_product_series(series)
         normalized_parameters = normalize_calculated_product_parameters(parameters)
 
@@ -162,7 +166,7 @@ class DBRepository:
         if row is None:
             return None
 
-        return float(row[0])
+        return round_calculated_product_cost(float(row[0]))
 
     def upsert_calculated_products(self, rows: Iterable[tuple[str, str, float]]) -> int:
         normalized_rows = [
@@ -223,8 +227,10 @@ class DBRepository:
                     JOIN products on products.file_loc=product_mapping.id
                     WHERE products.series=(%s)
                             """, (series,))
-                results = cur.fetchone()[0]
-        return results
+                row = cur.fetchone()
+        if row is None:
+            raise LookupError(f"Module mapping for series {series!r} not found")
+        return row[0]
 
     def get_materials_for_products(self, series: str) -> Dict[int, List]:
         '''
