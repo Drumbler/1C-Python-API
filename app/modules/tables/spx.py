@@ -17,9 +17,8 @@ def parse_params(parameters: str) -> Dict[str, str]:
         '0',
         'width',
         'depth',
-        'height',
+        # 'height',
         'ral',
-
         'shelf_type_material',
         'shelf_count',
         'tabletop_material',
@@ -45,7 +44,7 @@ def cost_calculation(parsed_params: Dict[str, str], series: str) -> float:
     total_cost = 0
     width = float(parsed_params.get('width'))/1000
     depth = float(parsed_params.get('depth'))/1000
-    height = float(parsed_params.get('height'))/1000
+    # height = float(parsed_params.get('height'))/1000
 
     ral = str(parsed_params.get('ral'))
     ral_price = MatCollector.get_price_by_abbr(ral)
@@ -103,7 +102,7 @@ def cost_calculation(parsed_params: Dict[str, str], series: str) -> float:
     if tabletop_rounding != 'нет':
         total_cost += MatCollector.get_price_by_id('id of rounding')
 
-    pillar_cost = pillar_calc(MatCollector, series, width, height)
+    pillar_cost = pillar_calc(MatCollector, series, width, 0.85)
     pillar_cost = pillar_cost if pillars == 'стандарт' else pillar_cost * 2
     total_cost += tabletop_cost + shelf_cross_cost + \
         pillar_cost + border_cost + cabinet_cost
