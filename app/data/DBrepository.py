@@ -41,6 +41,7 @@ CALCULATED_PRODUCTS_ZPVN_TEMPLATE = (
 )
 STANDARD_FILTER_NAME = 'ст.фильтры'
 PREMIUM_FILTER_NAME = 'премиум.жир'
+PREMIUM_BACKPLATE_NAME = 'задн.ст.НЕРЖ'
 PREMIUM_SERIES_MARKER = 'ПРЕМИУМ'
 CHARACTERISTIC_PATTERN = re.compile(r'^\s*(\d+)\s*[xх*]\s*(\d+)\s*[xх*]\s*(\d+)\s*$')
 
@@ -76,6 +77,12 @@ def build_calculated_product_parameters(series: str, characteristic: str) -> str
         if PREMIUM_SERIES_MARKER in normalized_series
         else STANDARD_FILTER_NAME
     )
+    backplate_name = (
+        PREMIUM_BACKPLATE_NAME
+        if PREMIUM_SERIES_MARKER in normalized_series
+        else CALCULATED_PRODUCTS_ZVN_TEMPLATE[1]
+    )
+    is_island = re.search(r'-04/0\d', normalized_series) is not None
 
     if normalized_series.startswith('ЗПВН'):
         parts = [
@@ -83,7 +90,7 @@ def build_calculated_product_parameters(series: str, characteristic: str) -> str
             depth,
             height,
             CALCULATED_PRODUCTS_ZPVN_TEMPLATE[0],
-            CALCULATED_PRODUCTS_ZPVN_TEMPLATE[1],
+            *(() if is_island else (backplate_name,)),
             CALCULATED_PRODUCTS_ZPVN_TEMPLATE[2],
             filter_name,
             *CALCULATED_PRODUCTS_ZPVN_TEMPLATE[3:],
@@ -94,7 +101,7 @@ def build_calculated_product_parameters(series: str, characteristic: str) -> str
             depth,
             height,
             CALCULATED_PRODUCTS_ZVN_TEMPLATE[0],
-            CALCULATED_PRODUCTS_ZVN_TEMPLATE[1],
+            *(() if is_island else (backplate_name,)),
             CALCULATED_PRODUCTS_ZVN_TEMPLATE[2],
             filter_name,
             *CALCULATED_PRODUCTS_ZVN_TEMPLATE[3:],
@@ -103,6 +110,25 @@ def build_calculated_product_parameters(series: str, characteristic: str) -> str
         raise ValueError(f'Unsupported zont series: {series!r}')
 
     return '/'.join(parts)
+
+
+def prepare_calculated_product_parameters(series: str, characteristic: str) -> str:
+    normalized_characteristic = normalize_calculated_product_parameters(characteristic)
+    if CHARACTERISTIC_PATTERN.match(normalized_characteristic):
+        return build_calculated_product_parameters(series, normalized_characteristic)
+
+    normalized_series = normalize_calculated_product_series(series)
+    parts = normalized_characteristic.split('/')
+    if (
+        normalized_series.startswith(('ВМ', 'ВК'))
+        and len(parts) >= 4
+        and all(part.isdigit() for part in parts[:3])
+    ):
+        return normalized_characteristic
+
+    raise ValueError(
+        f'Unsupported characteristic for series {series!r}: {characteristic!r}'
+    )
 
 
 
@@ -211,7 +237,7 @@ class DBRepository:
             if not isinstance(cost, (int, float)):
                 continue
 
-            parameters = build_calculated_product_parameters(series, characteristic)
+            parameters = prepare_calculated_product_parameters(series, characteristic)
             rows_to_upsert.append((series, parameters, float(cost)))
 
         workbook.close()

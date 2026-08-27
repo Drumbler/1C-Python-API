@@ -3,10 +3,15 @@
 *.pyc
 __pycache__/
 *.coverage
+*.csv
 .env
 /Env/
-/tests/
-pytest.ini
+.pytest_cache/
+tests/__pycache__/
+tests/*.xlsx
+tests/*.xls
+tests/.~lock.*
+tests/Old_data/
 docker-compose.yaml
 calculated_products_export.csv
 run_test_correct_request.sh
@@ -19,3 +24,5 @@ py.py
 app/modules/ideas.md
 app/modules/sql_query.md
 old_db
+Ванны со стандартными характеристиками для загрузки.xlsx
+Выгрузка цен — ванны и рукомойники 12.05.2026.xlsx

@@ -82,7 +82,12 @@ def calculate_shelfs_cost(
     shelfs_cost = 0.0
     has_extra_reinforcement = params.additional_reinforcement == EXTRA_REINFORCEMENT
     for shelf_type in params.shelfs_order:
-        shelfs_cost += calculate_shelf_cost(MaterialBase, params, ShelfType.get_type(shelf_type))
+        normalized_shelf_type = (
+            shelf_type
+            if isinstance(shelf_type, ShelfType)
+            else ShelfType.get_type(shelf_type)
+        )
+        shelfs_cost += calculate_shelf_cost(MaterialBase, params, normalized_shelf_type)
         if has_extra_reinforcement:
             shelfs_cost += calculate_shelf_reinforcement(MaterialBase, params)
 

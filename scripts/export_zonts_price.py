@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import re
 from pathlib import Path
 from typing import Iterable
@@ -8,7 +9,7 @@ from openpyxl import Workbook, load_workbook
 
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
-SOURCE_PATH = Path("/home/drumbler/Документы/Рабочие вопросики/Прайс-лист Финист 12.05.2026.xlsm")
+SOURCE_PATH = Path("/home/drumbler/Drumbler/Рабочие вопросики/Прайс-лист Финист 12.05.2026.xlsm")
 TARGET_PATH = ROOT_DIR / "Товары из прайса в базу.xlsx"
 SHEET_NAME = "Зонты"
 
@@ -86,47 +87,64 @@ def extract_size(value: object) -> tuple[int, int] | None:
     return int(match.group(1)), int(match.group(2))
 
 
-def iter_products() -> Iterable[tuple[str, str, float | int]]:
-    workbook = load_workbook(SOURCE_PATH, read_only=True, data_only=True, keep_vba=True)
-    worksheet = workbook[SHEET_NAME]
+def iter_products(
+    source_path: Path = SOURCE_PATH,
+) -> Iterable[tuple[str, str, float | int]]:
+    workbook = load_workbook(source_path, read_only=True, data_only=True, keep_vba=True)
+    try:
+        worksheet = workbook[SHEET_NAME]
 
-    current_product: str | None = None
-    current_height: int | None = None
-    seen: set[tuple[str, str]] = set()
+        current_product: str | None = None
+        current_height: int | None = None
+        seen: set[tuple[str, str]] = set()
 
-    for product_cell, height_cell, size_cell, price_cell in worksheet.iter_rows(
-        min_row=1,
-        max_row=worksheet.max_row,
-        min_col=1,
-        max_col=4,
-        values_only=True,
-    ):
-        normalized_product = normalize_header(product_cell)
-        if normalized_product is not None:
-            current_product = normalized_product
+        for product_cell, height_cell, size_cell, price_cell in worksheet.iter_rows(
+            min_row=1,
+            max_row=worksheet.max_row,
+            min_col=1,
+            max_col=4,
+            values_only=True,
+        ):
+            size = extract_size(size_cell)
+            normalized_product = normalize_header(product_cell)
+            if normalized_product is not None:
+                current_product = normalized_product
+            elif (
+                product_cell is not None
+                and size is not None
+                and isinstance(price_cell, (int, float))
+            ):
+                # A priced row with another name starts a different product
+                # section (round umbrellas, filters, lights, etc.).
+                current_product = None
+                current_height = None
 
-        height = extract_height(height_cell)
-        if height is not None:
-            current_height = height
+            height = extract_height(height_cell)
+            if height is not None and current_product is not None:
+                current_height = height
 
-        if current_product is None or current_height is None:
-            continue
+            if current_product is None or current_height is None:
+                continue
 
-        size = extract_size(size_cell)
-        if size is None or not isinstance(price_cell, (int, float)):
-            continue
+            if size is None or not isinstance(price_cell, (int, float)):
+                continue
 
-        width, depth = size
-        characteristic = f"{width}*{depth}*{current_height}"
-        dedupe_key = (current_product, characteristic)
-        if dedupe_key in seen:
-            continue
+            width, depth = size
+            characteristic = f"{width}*{depth}*{current_height}"
+            dedupe_key = (current_product, characteristic)
+            if dedupe_key in seen:
+                continue
 
-        seen.add(dedupe_key)
-        yield current_product, characteristic, price_cell
+            seen.add(dedupe_key)
+            yield current_product, characteristic, price_cell
+    finally:
+        workbook.close()
 
 
-def save_to_excel(rows: Iterable[tuple[str, str, float | int]]) -> int:
+def save_to_excel(
+    rows: Iterable[tuple[str, str, float | int]],
+    target_path: Path = TARGET_PATH,
+) -> int:
     workbook = Workbook()
     worksheet = workbook.active
     worksheet.title = "Зонты"
@@ -141,13 +159,23 @@ def save_to_excel(rows: Iterable[tuple[str, str, float | int]]) -> int:
     worksheet.column_dimensions["B"].width = 20
     worksheet.column_dimensions["C"].width = 18
 
-    workbook.save(TARGET_PATH)
+    workbook.save(target_path)
     return count
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Extract umbrella series, dimensions and retail prices."
+    )
+    parser.add_argument("--source", type=Path, default=SOURCE_PATH)
+    parser.add_argument("--target", type=Path, default=TARGET_PATH)
+    return parser.parse_args()
+
+
 def main() -> None:
-    count = save_to_excel(iter_products())
-    print(f"Created: {TARGET_PATH}")
+    args = parse_args()
+    count = save_to_excel(iter_products(args.source), args.target)
+    print(f"Created: {args.target}")
     print(f"Rows: {count}")
 
 

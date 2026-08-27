@@ -61,7 +61,7 @@ def cost_calculation(parsed_params: Dict[str, str], series: str) -> float:
 
     reinf = parsed_params.get('additional_reinf', 'усиление.нет')
     isAssembled = 'сборн.'if parsed_params.get(
-        'isAssembled') == 'разборн.' else parsed_params.get('isAssembled')
+        'isAssembled') == 'разборн' else parsed_params.get('isAssembled')
     stands = parsed_params.get('stands_type')
 
     pillar_cost = pillar_calc(mat_collector, series,

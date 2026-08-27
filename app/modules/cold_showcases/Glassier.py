@@ -450,18 +450,14 @@ def calculate(parameters: str, series: str)-> float:
         components
     )
 
-    компоненты = [
-        #Стабильные
-        tape_10, # Изотейп 10мм
-        tape_5, # Изотейп 5мм
-        clue_dome,
-
-        #Переменные
-        machine,
-        vaporizer_number * vaporizer_price,
-        vaporizer_number * vaporizer_fan_cost,
-
-    ]
+    компоненты = [tape_10, # Изотейп 10мм
+                  tape_5, # Изотейп 5мм 
+                  clue_dome,
+                  #Переменные
+                  machine,
+                  vaporizer_number * vaporizer_price,
+                  vaporizer_number * vapor izer_fan_cost
+                  ]
 
 
     additional_cost = (

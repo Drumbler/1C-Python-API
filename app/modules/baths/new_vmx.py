@@ -187,8 +187,11 @@ def _handle_tap_count_token(
     value: str,
     *_: object,
 ) -> int | None:
-    if 'смес' not in value.casefold():
+    lower_value = value.casefold()
+    if 'смес' not in lower_value:
         return None
+    if lower_value == 'смес.нет':
+        return 0
     return _extract_int(value, 'number_of_tap_hole')
 
 
@@ -310,7 +313,7 @@ def parse_parameters(parameters: str, series: str) -> VMXParams:
     position_of_shelf = len(values) - 2
 
     for index, value in enumerate(values):
-        if index == 3:
+        if index == 3 or 'моеч.отд.' in value.casefold():
             _handle_bath_geometry_token(state, value)
             continue
         if index == 4:
