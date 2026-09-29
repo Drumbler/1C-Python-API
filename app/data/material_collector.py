@@ -1,18 +1,19 @@
 import re
-from typing import Dict, List
-from app.data.DBrepository import DBRepository
+
+from app.data.DBrepository import DBrepository
+from app.data.database_pool import pool
 
 
-dbrepo = DBRepository()
+dbrepo = DBrepository(pool)
 
 
 class MaterialCollector:
     '''
     Класс для подбора материалов для изделия из базы данных.
     '''
-    def __init__(self, series):
-        self.series = series
-        self.materials: Dict = dbrepo.get_materials_for_products(self.series)
+    def __init__(self, series: str, materials: dict[int, list]):
+        self.series: str = series
+        self.materials: dict[int, list] = materials
 
     def calculate_misc(self) -> float:
         '''
@@ -32,7 +33,7 @@ class MaterialCollector:
             del self.materials[key]
         return float(misc)
 
-    def collect_materials(self, unknown_materials: List = None):
+    def collect_materials(self, unknown_materials: list = None):
         '''
         Может понадобиться в будущем, на данный момент функция не используется!!!
         Добавляет в self.materials материалы из списка(по аббревиатуре) по запросу
@@ -71,7 +72,7 @@ class MaterialCollector:
         return self.materials.get(material_id, default)
 
 
-def get_mat_id_by_abbr(materials_base, materials_abbr: List) -> int:
+def _get_mat_id_by_abbr(materials_base, materials_abbr: list) -> int:
     abbr_ind = 0
     result = []
     for key, lst in materials_base.items():
@@ -80,7 +81,7 @@ def get_mat_id_by_abbr(materials_base, materials_abbr: List) -> int:
     return result[0] if len(result) == 1 else result
 
 
-def get_mat_id_by_name(material_base, name_pattern) -> float:
+def _get_mat_id_by_name(material_base, name_pattern) -> float:
 
     pattern = re.compile(r'(?i)' + name_pattern)
     for mat_id, (abbr, name, price) in material_base.items():

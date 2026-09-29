@@ -4,24 +4,34 @@ import logging.config
 from fastapi import FastAPI, HTTPException, Response, UploadFile
 from pandas.errors import ParserError
 
-
 from app.controllers.calculation_controller import CalculationController
 from app.controllers.exception_handler import ErrorHandlerMiddleware
 from app.schemas import CalculationRequest, CalculationResponse
-from app.data.DBrepository import DBRepository
+from app.data.DBrepository import DBrepository
 import app.logger.log_config
 from app.logger.logger import LoggingMiddleware
+from app.data.database_pool import pool
+from contextlib import asynccontextmanager
 # warning_logger, debug_logger, calculation_logger
 
 
-DBrepo = DBRepository()
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    try:
+        await pool.open(wait=True)
+        yield
+    finally:
+        await pool.close()
+
+app = FastAPI(lifespan=lifespan)
+repository = DBrepository(pool)
+
 app.add_middleware(ErrorHandlerMiddleware)
 app.add_middleware(LoggingMiddleware, logger=logging.getLogger(__name__))
 
 logger = logging.getLogger(__name__)
 
-calc_controller = CalculationController()
+calc_controller = CalculationController(repository)
 
 
 @app.post("/calculate", response_model=CalculationResponse)
@@ -34,7 +44,7 @@ async def calculate_cost(request: CalculationRequest):
         raise HTTPException(status_code=400, detail="Parameters are required")
 
     try:
-        calculated_cost = DBrepo.get_calculated_product_cost(
+        calculated_cost = await repository.get_calculated_product_cost_async(
             request.series,
             request.parameters,
         )
@@ -74,11 +84,11 @@ async def calculate_cost(request: CalculationRequest):
 @app.get('/series_file')
 async def get_series_file(series: str):
     try:
-        file_location = DBrepo.get_module_file_location(series)
+        file_location = await repository.get_module_file_location_async(series)
         print(file_location, type(file_location))
         return {'file_location': file_location}
-    except:
-        raise HTTPException(status_code=404, detail='Module not found')
+    except LookupError as e:
+        raise HTTPException(status_code=404, detail=f'Module not found: {str(e)}')
 
 
 @app.post('/add_data')
@@ -88,7 +98,7 @@ async def add_data_to_db(excel_file: UploadFile):
     """
     try:
 
-        DBrepo.add_data_from_excel(excel_file)
+        await repository.add_data_from_excel(excel_file)
         return Response(status_code=200)
     except Exception as e:
         tb = traceback.extract_tb(e.__traceback__)
@@ -105,7 +115,7 @@ async def update_data_db(excel_file: UploadFile):
     (Временно, потом дополним) Обновление данных в базе данных
     """
     try:
-        DBrepo.update_data_from_excel(excel_file)
+        repository.update_data_from_excel(excel_file)
         return Response(status_code=200)
     except KeyError as e:
         logger.error(f"Key error: {e}")
@@ -129,3 +139,8 @@ async def update_data_db(excel_file: UploadFile):
                      'location': error_location})
         raise HTTPException(
             status_code=500, detail=f'Unhandled exception during updating data: {str(e)}')
+
+
+@app.get("/ping")
+async def ping():
+    return {"message": "pong"}

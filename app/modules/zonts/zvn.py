@@ -173,9 +173,10 @@ def parse_parameters(parameters: str, series: str) -> ZVNParams | ZPVNParams:
     return dto_cls(**data)
 
 
-def cost_calculation(params: ZVNParams | ZPVNParams, series: str) -> float:
+def cost_calculation(params: ZVNParams | ZPVNParams, series: str, materials: dict[int, list]) -> float:
     FormattedSeries = ZVNSeries(series)
-    MatCollector = MaterialCollector(series)
+    
+    MatCollector = MaterialCollector(series, materials)
 
     total_cost = 0
 
@@ -207,14 +208,18 @@ def cost_calculation(params: ZVNParams | ZPVNParams, series: str) -> float:
     
 
 
-def calculate_details(parameters: str, series: str) -> tuple[float, float]:
+def calculate_details(parameters: str, series: str, materials: dict[int, list]) -> tuple[float, float]:
     normalized_series, _ = normalize_series(series)
     parsed_params = parse_parameters(parameters, series)
-    total_cost, markup = cost_calculation(parsed_params, normalized_series)
+    total_cost, markup = cost_calculation(parsed_params, normalized_series, materials)
     print(markup, 'Наценка вся')
     return round(total_cost, 2), markup
 
+# Функция calculate требуется, для того чтобы не ломая логику можно было опустить наценку, 
+# в будущем, когда можно будет возвращать и наценку и цену, будет использоваться calculate_details как основа
 
-def calculate(parameters: str, series: str) -> float:
-    total_cost, _ = calculate_details(parameters, series)
+
+
+async def calculate(parameters: str, series: str, materials: dict[int, list]) -> float:
+    total_cost, _ = await calculate_details(parameters, series, materials)
     return total_cost

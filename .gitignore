@@ -26,3 +26,4 @@ app/modules/sql_query.md
 old_db
 Ванны со стандартными характеристиками для загрузки.xlsx
 Выгрузка цен — ванны и рукомойники 12.05.2026.xlsx
+/test_concurrent_requests.py

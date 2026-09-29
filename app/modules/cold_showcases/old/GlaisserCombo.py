@@ -1,5 +1,6 @@
-from app.data.DBrepository import DBRepository
+from app.data.DBrepository import DBrepository
 from app.controllers.request_handler import RequestHandler
+from app.data.database_pool import pool
 
 
 def calculate(parameters: str, series: str) -> float:
@@ -116,7 +117,7 @@ def calculate(parameters: str, series: str) -> float:
     tape_5 = handler.handle_request('тейп5')
     vaporizer_fan_cost = handler.handle_request('вентилятор испаритель')
 
-    DBrepo = DBRepository()
+    DBrepo = DBrepository(pool)
     handler.received_data = DBrepo.get_parameters_for_db(
         handler.list_for_request,
         list_of_column_names=["Name", "Price", "Weight"]

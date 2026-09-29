@@ -1,5 +1,6 @@
-from app.data.DBrepository import DBRepository
+from app.data.DBrepository import DBrepository
 from app.controllers.request_handler import RequestHandler
+from app.data.database_pool import pool
 # Подумать над покраской, ...
 
 
@@ -62,7 +63,7 @@ def calculate(series: str, parameters: str) -> float:
     drain_hole = parameters_list[4]
     support_unit = handler.handle_request('опорный узел')
 
-    DBrepo = DBRepository()
+    DBrepo = DBrepository(pool)
     handler.received_data = DBrepo.get_parameters_for_db(
         handler.list_for_request,
         list_of_column_names=["Name", "Price", "Weight"]

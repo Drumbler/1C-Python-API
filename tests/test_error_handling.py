@@ -4,7 +4,7 @@ import pytest
 from fastapi import HTTPException
 
 from app.data.material_collector import MaterialCollector
-from app.main import calc_controller, calculate_cost, DBrepo
+from app.main import calc_controller, calculate_cost, repository
 from app.schemas import CalculationRequest
 
 
@@ -12,7 +12,7 @@ def test_calculate_preserves_http_exception_status(monkeypatch) -> None:
     async def fail_calculation(series: str, parameters: str):
         raise HTTPException(status_code=400, detail="bad calculation input")
 
-    monkeypatch.setattr(DBrepo, "get_calculated_product_cost", lambda *_: None)
+    monkeypatch.setattr(repository, "get_calculated_product_cost", lambda *_: None)
     monkeypatch.setattr(calc_controller, "calculation", fail_calculation)
 
     with pytest.raises(HTTPException) as exc_info:

@@ -1,147 +1,39 @@
 import os
-import re
-from decimal import Decimal, ROUND_HALF_UP
-from pathlib import Path
-from typing import Dict, Iterable, List
-
+import psycopg
+from psycopg import sql
 import psycopg2
+import pandas as pd
+from psycopg_pool import AsyncConnectionPool
 from logging import getLogger
 from fastapi import HTTPException, UploadFile
-import pandas as pd
-from dotenv import load_dotenv
+from pathlib import Path
+from typing import Dict, Iterable, List
+from dotenv import load_dotenv # Нужен в основном для загрузки данных в локальной среде, при деплое на сервере не нужен
 from openpyxl import load_workbook
 
 from app.controllers.module_loader import load_all_modules
+from app.data.database_pool import pool
+from app.data.normalizer import CALCULATED_PRODUCTS_TABLE, normalize_calculated_product_parameters, normalize_calculated_product_series, prepare_calculated_product_parameters, round_calculated_product_cost
 
 
 logger = getLogger(__name__)
 
-CALCULATED_PRODUCTS_TABLE = 'calculated_products'
-CALCULATED_PRODUCTS_ZVN_TEMPLATE = (
-    'н.ст.08',
-    'задн.ст.ОЦИНК',
-    'не.краш',
-    'врез.выт',
-    '-',
-    'без.подсв',
-    'вент.нет',
-    'сборн',
-)
-CALCULATED_PRODUCTS_ZPVN_TEMPLATE = (
-    'н.ст.08',
-    'задн.ст.ОЦИНК',
-    'не.краш',
-    'врез.выт',
-    '-',
-    'врез.прит',
-    '-',
-    'без.подсв',
-    'вент.нет',
-    'сборн',
-)
-STANDARD_FILTER_NAME = 'ст.фильтры'
-PREMIUM_FILTER_NAME = 'премиум.жир'
-PREMIUM_BACKPLATE_NAME = 'задн.ст.НЕРЖ'
-PREMIUM_SERIES_MARKER = 'ПРЕМИУМ'
-CHARACTERISTIC_PATTERN = re.compile(r'^\s*(\d+)\s*[xх*]\s*(\d+)\s*[xх*]\s*(\d+)\s*$')
 
-
-def round_calculated_product_cost(cost: float | int) -> int:
-    return int(Decimal(str(cost)).quantize(Decimal('1'), rounding=ROUND_HALF_UP))
-
-
-def normalize_calculated_product_series(series: str) -> str:
-    return ' '.join(series.strip().split()).upper()
-
-
-def normalize_calculated_product_parameters(parameters: str) -> str:
-    normalized_parts = [part.strip() for part in parameters.split('/')]
-
-    while normalized_parts and not normalized_parts[0]:
-        normalized_parts.pop(0)
-    while normalized_parts and not normalized_parts[-1]:
-        normalized_parts.pop()
-
-    return '/'.join(normalized_parts)
-
-
-def build_calculated_product_parameters(series: str, characteristic: str) -> str:
-    normalized_series = normalize_calculated_product_series(series)
-    match = CHARACTERISTIC_PATTERN.match(characteristic)
-    if match is None:
-        raise ValueError(f'Unsupported characteristic format: {characteristic!r}')
-
-    width, depth, height = match.groups()
-    filter_name = (
-        PREMIUM_FILTER_NAME
-        if PREMIUM_SERIES_MARKER in normalized_series
-        else STANDARD_FILTER_NAME
-    )
-    backplate_name = (
-        PREMIUM_BACKPLATE_NAME
-        if PREMIUM_SERIES_MARKER in normalized_series
-        else CALCULATED_PRODUCTS_ZVN_TEMPLATE[1]
-    )
-    is_island = re.search(r'-04/0\d', normalized_series) is not None
-
-    if normalized_series.startswith('ЗПВН'):
-        parts = [
-            width,
-            depth,
-            height,
-            CALCULATED_PRODUCTS_ZPVN_TEMPLATE[0],
-            *(() if is_island else (backplate_name,)),
-            CALCULATED_PRODUCTS_ZPVN_TEMPLATE[2],
-            filter_name,
-            *CALCULATED_PRODUCTS_ZPVN_TEMPLATE[3:],
-        ]
-    elif normalized_series.startswith('ЗВН'):
-        parts = [
-            width,
-            depth,
-            height,
-            CALCULATED_PRODUCTS_ZVN_TEMPLATE[0],
-            *(() if is_island else (backplate_name,)),
-            CALCULATED_PRODUCTS_ZVN_TEMPLATE[2],
-            filter_name,
-            *CALCULATED_PRODUCTS_ZVN_TEMPLATE[3:],
-        ]
-    else:
-        raise ValueError(f'Unsupported zont series: {series!r}')
-
-    return '/'.join(parts)
-
-
-def prepare_calculated_product_parameters(series: str, characteristic: str) -> str:
-    normalized_characteristic = normalize_calculated_product_parameters(characteristic)
-    if CHARACTERISTIC_PATTERN.match(normalized_characteristic):
-        return build_calculated_product_parameters(series, normalized_characteristic)
-
-    normalized_series = normalize_calculated_product_series(series)
-    parts = normalized_characteristic.split('/')
-    if (
-        normalized_series.startswith(('ВМ', 'ВК'))
-        and len(parts) >= 4
-        and all(part.isdigit() for part in parts[:3])
-    ):
-        return normalized_characteristic
-
-    raise ValueError(
-        f'Unsupported characteristic for series {series!r}: {characteristic!r}'
-    )
-
-
-
-class DBRepository:
+class DBrepository:
 
     # name pass and user for local usage only!
-    def __init__(self):
-        self.conn_data = {'dbname': str(os.environ.get('DB_NAME')),
-                          'user': str(os.environ.get('DB_USER')),
-                          'password': str(os.environ.get('DB_PASS')),
-                          'host': str(os.environ.get('DB_IP')),
-                          'port': str(os.environ.get('DB_PORT')),
-                          }
+    # implement connections pool
+    # with self.connection = get_conn()
+    # 
+    def __init__(self, pool: AsyncConnectionPool):
+        self.pool = pool
+        self.conn_data = {
+            'dbname': str(os.environ.get('DB_NAME')),
+            'user': str(os.environ.get('DB_USER')),
+            'password': str(os.environ.get('DB_PASS')),
+            'host': str(os.environ.get('DB_IP')),
+            'port': str(os.environ.get('DB_PORT')),
+        }
         '''
         Строка ниже нужна для подключения к базе при запуске api локально на своей машине(ПК)
         НЕ УДАЛЯТЬ!!!
@@ -153,6 +45,7 @@ class DBRepository:
         #                   'host': str(os.getenv('DB_IP')),
         #                   'port': str(os.getenv('DB_PORT')),
         #                   } 
+
     def ensure_calculated_products_table(self) -> None:
         with psycopg2.connect(**self.conn_data) as conn:
             with conn.cursor() as cur:
@@ -166,7 +59,37 @@ class DBRepository:
                     )
                 """)
 
+
+    async def get_calculated_product_cost_async(self, series: str, parameters: str) -> int | None:
+        normalized_series = normalize_calculated_product_series(series)
+        normalized_parameters = normalize_calculated_product_parameters(parameters)
+        try:
+            async with self.pool.connection() as conn:
+                async with conn.cursor() as cur:
+                    await cur.execute(
+                        f"""
+                            SELECT cost
+                            FROM {CALCULATED_PRODUCTS_TABLE}
+                            WHERE series = %s AND parameters = %s
+                            LIMIT 1
+                        """,
+                        (normalized_series, normalized_parameters),
+                    )
+                    row = await cur.fetchone()
+        except psycopg.Error as exc:
+            if exc.pgcode == '42P01':
+                return None
+            logger.warning(f"Database error: {exc}")
+            raise RuntimeError(f"Database error: {exc}") from exc
+        if row is None:
+            return None
+        return round_calculated_product_cost(float(row[0]))
+
+
     def get_calculated_product_cost(self, series: str, parameters: str) -> int | None:
+        '''
+        DEPRECATED: Use get_calculated_product_cost_async instead for async operations.
+        '''
         normalized_series = normalize_calculated_product_series(series)
         normalized_parameters = normalize_calculated_product_parameters(parameters)
 
@@ -183,16 +106,15 @@ class DBRepository:
                         (normalized_series, normalized_parameters),
                     )
                     row = cur.fetchone()
-        except psycopg2.Error as exc:
-            if exc.pgcode == '42P01':
+        except psycopg.Error as exc:
+            if exc.sqlstate == '42P01':
                 return None
             logger.warning(f"Database error: {exc}")
             raise RuntimeError(f"Database error: {exc}") from exc
-
         if row is None:
             return None
-
         return round_calculated_product_cost(float(row[0]))
+
 
     def upsert_calculated_products(self, rows: Iterable[tuple[str, str, float]]) -> int:
         normalized_rows = [
@@ -222,6 +144,7 @@ class DBRepository:
 
         return len(normalized_rows)
 
+
     def load_calculated_products_from_xlsx(self, workbook_path: str | os.PathLike[str]) -> int:
         workbook = load_workbook(Path(workbook_path), read_only=True, data_only=True)
         worksheet = workbook.active
@@ -242,8 +165,28 @@ class DBRepository:
 
         workbook.close()
         return self.upsert_calculated_products(rows_to_upsert)
+
+
+    async def get_module_file_location_async(self, series: str) -> str:
+        if not series:
+            raise RuntimeError("Series cannot be empty")
+        async with self.pool.connection() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute("""
+                    SELECT file_name FROM product_mapping
+                    JOIN products on products.file_loc=product_mapping.id
+                    WHERE products.series=(%s)
+                            """, (series,))
+                row = await cur.fetchone()
+        if row is None:
+            raise LookupError(f"Module mapping for series {series} not found")
+        return row[0]
+
     
     def get_module_file_location(self, series: str) -> str:
+        '''
+        DEPRECATED: Use get_module_file_location_async instead for async operations.
+        '''
         if not series:
             raise RuntimeError("Series cannot be empty")
         with psycopg2.connect(**self.conn_data,) as conn:
@@ -258,8 +201,47 @@ class DBRepository:
             raise LookupError(f"Module mapping for series {series!r} not found")
         return row[0]
 
+
+    async def get_materials_for_products_async(self, series: str) -> Dict[int, List]:
+        if not series:
+            raise RuntimeError("Series cannot be empty")
+        async with self.pool.connection() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute("""
+                    SELECT m.id, m.abbreviation, m.name, mfp.misc, m.price * mfp.quantity AS total_price, mfp.alternative_abbreviations
+                    FROM products p
+                    JOIN materials_for_products mfp ON p.id = mfp.product_id
+                    JOIN materials m ON mfp.material_id = m.id
+                    WHERE p.series = (%s);
+                """, (series,))
+                results = await cur.fetchall()
+        materials_dict = {}
+        for row in results:
+            material_id, abbreviation, name, misc, total_price, alternative_abbreviations = row
+
+            abbreviations_to_use = set()
+            if abbreviation:
+                abbreviations_to_use.add(abbreviation.strip())
+            if alternative_abbreviations:
+                abbreviations_to_use.update(
+                    abbr.strip()
+                    for abbr in alternative_abbreviations.split(",")
+                    if abbr.strip()
+                )
+
+            materials_dict[material_id] = [
+                abbreviations_to_use,
+                name,
+                misc,
+                float(total_price)
+            ]
+        return materials_dict
+    
+
     def get_materials_for_products(self, series: str) -> Dict[int, List]:
         '''
+        DEPRECATED: Use get_materials_for_products_async instead for async operations.
+        ------------------------------------------------------------------------------
         Метод, выгружающий список материалов из базы данных для конкретного изделия.
         Материалы определяются по серии и записаны в базу данных.
         '''
@@ -299,6 +281,43 @@ class DBRepository:
             ]
         return materials_dict
 
+
+    async def get_parameters_for_db_async(
+            self,
+            list_requered_parameters: list,
+            key_column_for_parameters="material_name",
+            name_of_db_table="materials",
+            list_of_column_names: list = ['id', "material_name", "price"],
+            requered_filter="Type IN (\'material\', \'work\', \'semis\')"
+    ) -> Dict:
+        if not list_of_column_names:
+            return {"Error": "List of column names cannot be empty"}
+        column_name_string = ", ".join(list_of_column_names)
+        
+        full_filter = (f"{requered_filter} AND {key_column_for_parameters} IN ({','.join(['%s'] * len(list_requered_parameters))})" 
+                       if requered_filter else 
+                       f"{key_column_for_parameters} IN ({','.join(['%s'] * len(list_requered_parameters))})")
+        query = f"SELECT {column_name_string} FROM {name_of_db_table} WHERE {full_filter}"
+        try:
+            async with self.pool.connection() as conn:
+                async with conn.cursor() as cur:
+                    await cur.execute(query, list_requered_parameters)
+                    results = await cur.fetchall()
+            match len(list_of_column_names):
+                case 1:
+                    return [row[0] for row in results]
+                case _:
+                    return {row[0]: list(row[1:]) for row in results}
+        except sql.Error as e:
+            logger.warning(f"Database error: {e}")
+            raise RuntimeError(f"Database error: {e}")
+        except Exception as e:
+            logger.error(f"Unhandled exception during calculation: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+        
+
+
+
     def get_parameters_for_db(
             self,
             list_requered_parameters: list,
@@ -307,6 +326,8 @@ class DBRepository:
             list_of_column_names: list = ['id', "material_name", "price"],
             requered_filter="Type IN (\'material\', \'work\', \'semis\')") -> Dict:
         '''
+        DEPRECATED: Use get_parameters_for_db_async instead for async operations.
+        -------------------------------------------------------------------------
         Метод, для получения данных из базы данных, реализована возможность выбора по какому столбцу идет выгрузка 
         и какие столбцы выгрузить
         '''
@@ -505,4 +526,4 @@ class DBRepository:
             raise RuntimeError(f"Database error: {e}")
 
 
-dbrepo = DBRepository()
+dbrepo = DBrepository(pool)

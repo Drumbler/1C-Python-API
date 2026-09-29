@@ -1,4 +1,4 @@
-from app.data.DBrepository import DBRepository
+from app.data.DBrepository import DBrepository
 from app.controllers.request_handler import RequestHandler
 
 
@@ -16,7 +16,7 @@ def calculate(*_) -> float:
 
     handler.list_for_request_options = []
 
-    DBrepo = DBRepository(db_path='tests/test_data/test.db')
+    DBrepo = DBrepository(db_path='tests/test_data/test.db')
     handler.received_data = DBrepo.get_parameters_for_db(
         handler.list_for_request,
         list_of_column_names=["Name", "Price", "Weight"]

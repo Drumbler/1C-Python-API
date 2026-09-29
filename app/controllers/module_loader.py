@@ -1,7 +1,9 @@
 import importlib
 
 from logging import getLogger
+from app.data.database_pool import pool
 import os
+
 
 logger = getLogger(__name__)
 
@@ -20,10 +22,20 @@ def unpack_and_merge(dict1: dict, dict2: dict) -> dict:
     return dict1
 
 
-def load_module(series: str):
-    from app.data.DBrepository import DBRepository
+def load_module_by_path(file_location: str):
+    try:
+        module = importlib.import_module(f"app.modules.{file_location}")
+        return module
+    except ImportError as e:
+        logger.warning(f"Module not found (Модуль не найден): {e}")
+        raise ImportError(f"module {file_location} not found (Модуль не найден)") from e
+    
 
-    DBrepo = DBRepository()
+
+def load_module(series: str):
+    from app.data.DBrepository import DBrepository
+
+    DBrepo = DBrepository(pool)
     # series_lib_unpacked = {
     #     (
     #         'ЗВН-01', 'ЗВН-02', 'ЗВН-03', 'ЗВН-04/03',
