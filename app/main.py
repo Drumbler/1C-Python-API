@@ -1,9 +1,12 @@
 import logging
+import os
 import traceback
-import logging.config
 from fastapi import FastAPI, HTTPException, Response, UploadFile
 from pandas.errors import ParserError
+from redis.exceptions import RedisError
 
+from app.data.calculation_cache import CalculationCache
+from app.data.redis_client import redis_client
 from app.controllers.calculation_controller import CalculationController
 from app.controllers.exception_handler import ErrorHandlerMiddleware
 from app.schemas import CalculationRequest, CalculationResponse
@@ -14,13 +17,25 @@ from app.data.database_pool import pool
 from contextlib import asynccontextmanager
 # warning_logger, debug_logger, calculation_logger
 
+calculation_cache = CalculationCache(
+    redis_client=redis_client,
+    ttl_seconds=int(os.getenv('CALCULATION_CACHE_TTL', 21600))
+)
+
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     try:
         await pool.open(wait=True)
+        try:
+            await redis_client.ping()
+            logger.info("Redis connection established successfully.")
+        except RedisError as e:
+            logger.warning(f"Redis is unavailable: {e}. Continuing without Redis.", exc_info=True)
+
         yield
     finally:
+        await redis_client.aclose()
         await pool.close()
 
 app = FastAPI(lifespan=lifespan)
@@ -57,14 +72,12 @@ async def calculate_cost(request: CalculationRequest):
 
         cost = await calc_controller.calculation(request.series, request.parameters)
         
-
         # Логируем успешный запрос в файл calculation_requests.log
         logger.info(f"Successful calculation: {cost}", extra={
             "request": request.model_dump(),
             "response": cost
         })
         
-
         return {'cost': cost}
 
     except HTTPException:

@@ -12,7 +12,6 @@ tests/*.xlsx
 tests/*.xls
 tests/.~lock.*
 tests/Old_data/
-docker-compose.yaml
 calculated_products_export.csv
 run_test_correct_request.sh
 Товары из прайса в базу.xlsx

@@ -5,6 +5,9 @@ __pycache__
 .Python
 .git
 .gitignore
+.env
+.env.*
+!.env.example
 README.md
 .pytest_cache
 .coverage

@@ -30,7 +30,7 @@ EXPOSE 5433
 
 # healthcheck (замени эндпоинт)
 HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
-  CMD wget -qO- http://localhost:5433/docs || exit 1
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:5433/ping', timeout=2)" || exit 1
 
 
 ARG DB_IP
