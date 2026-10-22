@@ -1,21 +1,20 @@
+import asyncio
 from pathlib import Path
 
 import pandas as pd
 import requests as rq
 
 from app.controllers.calculation_controller import CalculationController
+from app.data.DBrepository import DBrepository
+from app.data.database_pool import pool
 
 
 BASE_DIR = Path(__file__).resolve().parent
 INPUT_FILE = BASE_DIR / 'ЗВН проверка стоимостей.xlsx'
 OUTPUT_FILE = BASE_DIR / 'Output.xlsx'
 
-file1 = pd.read_excel(INPUT_FILE)
-
-test_dict: dict = {}
 # url = 'http://192.168.24.180:5433/calculate'
 url = 'http://127.0.0.1:8000/calculate'
-calc_controller = CalculationController()
 
 
 def _normalize_number(value: object) -> float | None:
@@ -48,7 +47,11 @@ def _format_signed_difference(current: float, reference: object) -> tuple[str, s
     return percent_text, absolute_text
 
 
-def _request_cost_and_markup(series: str, parameters: str) -> tuple[float, float]:
+async def _request_cost_and_markup(
+    calc_controller: CalculationController,
+    series: str,
+    parameters: str,
+) -> tuple[float, float]:
     payload = {
         'series': series,
         'parameters': parameters,
@@ -58,42 +61,54 @@ def _request_cost_and_markup(series: str, parameters: str) -> tuple[float, float
     response.raise_for_status()
 
     calculated_cost = float(response.json()['cost'])
-    calculation_details = calc_controller.get_calculation_details(series, parameters)
+    calculation_details = await calc_controller.get_calculation_details(series, parameters)
     if calculation_details.markup is None:
         raise ValueError(f'Module {series} does not provide markup')
 
     return calculated_cost, calculation_details.markup
 
 
-def main() -> None:
-    for idx, row in file1.iterrows():
-        series = row['Серия']
-        params = row['Параметры']
-        calculated_cost, markup = _request_cost_and_markup(series, params)
-        calculated_cost_price = calculated_cost / markup
-        price_percent_diff, price_absolute_diff = _format_signed_difference(
-            calculated_cost,
-            row['Стоимость прайс'],
-        )
-        cost_price_percent_diff, cost_price_absolute_diff = _format_signed_difference(
-            calculated_cost_price,
-            row['С/С (Ольга)'],
-        )
+async def main() -> None:
+    file1 = pd.read_excel(INPUT_FILE)
+    calc_controller = CalculationController(DBrepository(pool))
+    await pool.open(wait=True)
 
-        file1.loc[idx, 'Стоимость считалочка'] = calculated_cost
-        file1.loc[idx, 'Наценка, %'] = markup
-        file1.loc[idx, 'С\С (Считалочка)'] = calculated_cost_price
-        file1.loc[idx, 'Разница цены, %'] = price_percent_diff
-        file1.loc[idx, 'Разница цены, абс.'] = price_absolute_diff
-        file1.loc[idx, 'Разница с/с, %'] = cost_price_percent_diff
-        file1.loc[idx, 'Разница с/с, абс.'] = cost_price_absolute_diff
-        print(calculated_cost)
+    try:
+        for idx, row in file1.iterrows():
+            series = row['Серия']
+            params = row['Параметры']
+            calculated_cost, markup = await _request_cost_and_markup(
+                calc_controller,
+                series,
+                params,
+            )
+            calculated_cost_price = calculated_cost / markup
+            price_percent_diff, price_absolute_diff = _format_signed_difference(
+                calculated_cost,
+                row['Стоимость прайс'],
+            )
+            cost_price_percent_diff, cost_price_absolute_diff = _format_signed_difference(
+                calculated_cost_price,
+                row['С/С (Ольга)'],
+            )
+
+            file1.loc[idx, 'Стоимость считалочка'] = calculated_cost
+            file1.loc[idx, 'Наценка, %'] = markup
+            file1.loc[idx, 'С\С (Считалочка)'] = calculated_cost_price
+            file1.loc[idx, 'Разница цены, %'] = price_percent_diff
+            file1.loc[idx, 'Разница цены, абс.'] = price_absolute_diff
+            file1.loc[idx, 'Разница с/с, %'] = cost_price_percent_diff
+            file1.loc[idx, 'Разница с/с, абс.'] = cost_price_absolute_diff
+            print(calculated_cost)
+    finally:
+        await pool.close()
+
     file1.to_excel(OUTPUT_FILE, index=False)
     print(f'Saved to: {OUTPUT_FILE}')
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
 
     
 

@@ -456,7 +456,7 @@ def calculate(parameters: str, series: str)-> float:
                   #Переменные
                   machine,
                   vaporizer_number * vaporizer_price,
-                  vaporizer_number * vapor izer_fan_cost
+                  vaporizer_number * vaporizer_fan_cost
                   ]
 
 

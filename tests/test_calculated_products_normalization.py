@@ -1,10 +1,10 @@
 import pytest
 
-from app.data.DBrepository import (
-    prepare_calculated_product_parameters,
+from app.data.normalizer import (
     build_calculated_product_parameters,
     normalize_calculated_product_parameters,
     normalize_calculated_product_series,
+    prepare_calculated_product_parameters,
     round_calculated_product_cost,
 )
 

@@ -1,0 +1,69 @@
+services:
+  migrate:
+    image: ${API_IMAGE:?API_IMAGE must contain an immutable GHCR image reference}
+    command: ["alembic", "upgrade", "head"]
+    environment: &database-environment
+      DB_IP: postgres
+      DB_PORT: 5432
+      DB_PASS: ${DB_PASS}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    image: ${API_IMAGE:?API_IMAGE must contain an immutable GHCR image reference}
+    ports:
+      - "5433:5433"
+    environment:
+      <<: *database-environment
+      REDIS_URL: redis://redis:6379/0
+      CALCULATION_CACHE_TTL: ${CALCULATION_CACHE_TTL:-21600}
+      PYTHONIOENCODING: utf-8
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:8-alpine
+    command:
+      - redis-server
+      - --save
+      - ""
+      - --appendonly
+      - "no"
+      - --maxmemory
+      - 128mb
+      - --maxmemory-policy
+      - allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
