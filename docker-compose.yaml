@@ -1,7 +1,9 @@
 services:
   migrate:
-    build: .
-    image: 1c_api:latest
+    build:
+      context: .
+      target: runtime
+    image: ${API_IMAGE:-1c_api:latest}
     command: ["alembic", "upgrade", "head"]
     environment:
       DB_IP: postgres
@@ -15,8 +17,10 @@ services:
     restart: "no"
 
   api:
-    build: .
-    image: 1c_api:latest
+    build:
+      context: .
+      target: runtime
+    image: ${API_IMAGE:-1c_api:latest}
     # extra_hosts:
     #   - "host.docker.internal:host-gateway"
     ports:

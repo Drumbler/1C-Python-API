@@ -32,7 +32,7 @@ logging_config = {
     "formatters": {
         "json": {
             # Используем кастомный JSON форматтер, который выводит extra поля
-            "()": "app.utils.logger.json_formatter.IndentedJsonFormatter",
+            "()": "app.logger.json_formatter.IndentedJsonFormatter",
             "datefmt": "%Y-%m-%d %H:%M:%S"
         }
     },

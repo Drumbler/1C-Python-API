@@ -1,11 +1,12 @@
 import hashlib
-
 import logging
+
 from redis import RedisError
 
 from app.data.normalizer import normalize_calculated_product_parameters, normalize_calculated_product_series
 
 logger = logging.getLogger(__name__)
+
 
 class CalculationCache:
     def __init__(self, redis_client, ttl_seconds: int):
@@ -20,16 +21,16 @@ class CalculationCache:
         key_hash = hashlib.sha256(raw_key.encode('utf-8')).hexdigest()
         return f"calculation:v1:{key_hash}"
 
-    async def get(self, series: str, parameters: str):
+    async def get(self, series: str, parameters: str) -> float | None:
         try:
             key = self._build_key(series, parameters)
             cached_value = await self.redis.get(key)
 
             if cached_value is None:
                 return None
-            
+
             return float(cached_value)
-        except RedisError:
+        except (RedisError, TypeError, ValueError):
             logger.warning("Failed to read calculation cache", exc_info=True)
             return None
 

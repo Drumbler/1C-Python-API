@@ -20,6 +20,7 @@ Not_added_to_DB.xlsx
 Not_updated_in_DB.xlsx
 py.py
 .qodo
+.deployed-image
 app/modules/ideas.md
 app/modules/sql_query.md
 old_db

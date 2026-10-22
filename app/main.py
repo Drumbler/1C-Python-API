@@ -8,6 +8,7 @@ from redis.exceptions import RedisError
 from app.data.calculation_cache import CalculationCache
 from app.data.redis_client import redis_client
 from app.controllers.calculation_controller import CalculationController
+from app.controllers.module_loader import calculation_module_registry
 from app.controllers.exception_handler import ErrorHandlerMiddleware
 from app.schemas import CalculationRequest, CalculationResponse
 from app.data.DBrepository import DBrepository
@@ -26,6 +27,7 @@ calculation_cache = CalculationCache(
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     try:
+        calculation_module_registry.discover()
         await pool.open(wait=True)
         try:
             await redis_client.ping()
@@ -59,11 +61,27 @@ async def calculate_cost(request: CalculationRequest):
         raise HTTPException(status_code=400, detail="Parameters are required")
 
     try:
+        cached_cost = await calculation_cache.get(
+            request.series,
+            request.parameters,
+        )
+        if cached_cost is not None:
+            logger.info("Successful lookup in Redis calculation cache", extra={
+                "request": request.model_dump(),
+                "response": cached_cost,
+            })
+            return {'cost': cached_cost}
+
         calculated_cost = await repository.get_calculated_product_cost_async(
             request.series,
             request.parameters,
         )
         if calculated_cost is not None:
+            await calculation_cache.set(
+                request.series,
+                request.parameters,
+                calculated_cost,
+            )
             logger.info("Successful lookup in calculated_products", extra={
                 "request": request.model_dump(),
                 "response": calculated_cost,
@@ -71,13 +89,19 @@ async def calculate_cost(request: CalculationRequest):
             return {'cost': calculated_cost}
 
         cost = await calc_controller.calculation(request.series, request.parameters)
-        
+
+        await calculation_cache.set(
+            request.series,
+            request.parameters,
+            cost,
+        )
+
         # Логируем успешный запрос в файл calculation_requests.log
         logger.info(f"Successful calculation: {cost}", extra={
             "request": request.model_dump(),
             "response": cost
         })
-        
+
         return {'cost': cost}
 
     except HTTPException:
@@ -93,6 +117,7 @@ async def calculate_cost(request: CalculationRequest):
         logger.exception("Unhandled exception during calculation", extra={
                          "location": error_location})
         raise HTTPException(status_code=500, detail=str(e))
+
     
 @app.get('/series_file')
 async def get_series_file(series: str):

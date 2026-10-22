@@ -1,51 +1,71 @@
-# Dockerfile
-FROM python:3.13.7
+# syntax=docker/dockerfile:1.7
 
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
+ARG PYTHON_VERSION=3.13.7
+
+FROM python:${PYTHON_VERSION}-slim AS builder
+
+ENV PATH=/opt/venv/bin:$PATH \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /build
+
+RUN python -m venv /opt/venv
+
+COPY requirements.txt ./
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install -r requirements.txt
+
+COPY app ./app
+COPY migrations ./migrations
+COPY alembic.ini ./
+
+# Legacy, source-adjacent .pyc files remain importable after .py removal.
+# Builder and runtime deliberately use the exact same Python version because
+# bytecode is tied to the interpreter version.
+RUN python -m compileall \
+        -q \
+        -f \
+        -b \
+        --invalidation-mode=unchecked-hash \
+        -s /build \
+        -p /app \
+        /build/app /build/migrations \
+    && find app migrations -type f -name '*.py' -delete \
+    && find app migrations -type d -name '__pycache__' -prune -exec rm -rf '{}' + \
+    && test -z "$(find app migrations -type f -name '*.py' -print -quit)" \
+    && mkdir -p app/data/logs \
+    && python -c "import app.main" \
+    && alembic heads | grep -q '(head)'
+
+
+FROM python:${PYTHON_VERSION}-slim AS runtime
+
+ENV PATH=/opt/venv/bin:$PATH \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
     PYTHONIOENCODING=utf-8 \
     LANG=C.UTF-8 \
     LC_ALL=C.UTF-8
 
 WORKDIR /app
 
-# системные зависимости по минимуму (если нужны колёса собираемые)
-RUN apt-get update && apt-get install -y --no-install-recommends build-essential && \
-    rm -rf /var/lib/apt/lists/*
+COPY --from=builder /opt/venv /opt/venv
+COPY --from=builder /build/app ./app
+COPY --from=builder /build/migrations ./migrations
+COPY --from=builder /build/alembic.ini ./alembic.ini
 
-# зависимости отдельно — для кеша
-COPY requirements.txt .
-RUN pip install --upgrade pip && pip install -r requirements.txt
+RUN groupadd --system app \
+    && useradd --system --gid app --home-dir /app --no-create-home app \
+    && mkdir -p /app/app/data/logs \
+    && chown -R app:app /app/app/data/logs
 
-# код
-COPY . .
+USER app
 
-# не под root
-RUN useradd -m appuser
-USER appuser
-
-# порт твоего API
 EXPOSE 5433
 
-# healthcheck (замени эндпоинт)
-HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
-  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:5433/ping', timeout=2)" || exit 1
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+    CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5433/ping', timeout=2).read()"]
 
-
-ARG DB_IP
-ARG DB_PORT
-ARG DB_PASS
-ARG DB_NAME
-ARG DB_USER
-
-ENV DB_IP=${DB_IP} \
-    DB_PORT=${DB_PORT} \
-    DB_PASS=${DB_PASS} \
-    DB_NAME=${DB_NAME} \
-    DB_USER=${DB_USER}
-
-# КОМАНДА ЗАПУСКА:
-# Пример для FastAPI: uvicorn your_module:app --port 5433
-# ЗАМЕНИ на свой entrypoint/порт
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "5433"]
